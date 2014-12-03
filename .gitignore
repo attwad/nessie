@@ -3,6 +3,9 @@
 *.a
 *.so
 
+# Vim
+*.swp
+
 # Folders
 _obj
 _test
