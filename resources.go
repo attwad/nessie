@@ -1,4 +1,4 @@
-package goness
+package nessie
 
 // Editor resources.
 
@@ -129,7 +129,7 @@ type Rule struct {
 
 // Policies resources.
 
-type Rule struct {
+type Policy struct {
 	ID                   int64  `json:"id"`
 	TemplateUUID         string `json:"template_uuid"`
 	Name                 string `json:"uuid"`
