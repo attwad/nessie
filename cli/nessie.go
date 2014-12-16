@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"github.com/attwad/nessie"
+	"log"
 )
 
 var apiURL, username, password, caCertPath, loginFile string
@@ -25,9 +25,11 @@ func main() {
 	}
 
 	if err := nessus.Login(username, password); err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
-	fmt.Print("Logged-in!\n")
-	defer fmt.Println(nessus.Logout())
+	log.Println("Logged-in")
+	defer nessus.Logout()
+
+	log.Println(nessus.ServerProperties())
 }

@@ -49,7 +49,7 @@ func NewNessus(apiURL, caCertPath string, ignoreSSLCertsErrors bool) (*Nessus, e
 	}, nil
 }
 
-func (n *Nessus) doRequest(method string, resource string, data url.Values) (resp *http.Response, err error) {
+func (n *Nessus) doRequest(method string, resource string, data url.Values, wantStatus int) (resp *http.Response, err error) {
 	u, err := url.ParseRequestURI(n.apiURL)
 	if err != nil {
 		return nil, err
@@ -67,11 +67,43 @@ func (n *Nessus) doRequest(method string, resource string, data url.Values) (res
 		req.Header.Add("X-Cookie", fmt.Sprintf("token=%s", n.authCookie))
 	}
 
-	return n.client.Do(req)
+	resp, err = n.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != wantStatus {
+		return nil, fmt.Errorf("Unexpected status code during login, got %d wanted %d", resp.StatusCode, wantStatus)
+	}
+	return resp, nil
 }
 
 type loginResp struct {
 	Token string `json:"token"`
+}
+
+type ServerProperties struct {
+	Token           string `json:"token"`
+	NessusType      string `json:"nessus_type"`
+	NessusUIVersion string `json:"nessus_ui_version"`
+	ServerVersion   string `json:"server_version"`
+	Feed            string `json:"feed"`
+	Enterprise      bool   `json:"enterprise"`
+	LoadedPluginSet string `json:"loaded_plugin_set"`
+	ServerUUID      string `json:"server_uuid"`
+	Expiration      int64  `json:"expiration"`
+	Notifications   []struct {
+		Type string `json:"type"`
+		Msg  string `json:"message"`
+	} `json:"notifications"`
+	ExpirationTime int64 `json:"expiration_time"`
+	Capabilities   struct {
+		MultiScanner      bool `json:"multi_scanner"`
+		ReportEmailConfig bool `json:"report_email_config"`
+	} `json:"capabilities"`
+	PluginSet       string `json:"plugin_set"`
+	IdleTImeout     int64  `json:"idle_timeout"`
+	ScannerBoottime int64  `json:"scanner_boottime"`
+	LoginBanner     bool   `json:"login_banner"`
 }
 
 // Login will log into nessus with the username and passwords given from the command line flags.
@@ -81,12 +113,9 @@ func (n *Nessus) Login(username, password string) error {
 	data.Set("username", username)
 	data.Set("password", password)
 
-	resp, err := n.doRequest("POST", "/session", data)
+	resp, err := n.doRequest("POST", "/session", data, http.StatusOK)
 	if err != nil {
 		return err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Unexpected status code during login: %d", resp.StatusCode)
 	}
 	reply := &loginResp{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
@@ -104,13 +133,24 @@ func (n *Nessus) Logout() error {
 	}
 	log.Println("Logout...")
 
-	resp, err := n.doRequest("DELETE", "/session", nil)
-	if err != nil {
+	if _, err := n.doRequest("DELETE", "/session", nil, http.StatusOK); err != nil {
 		return err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Unexpected status code during logout: %d", resp.StatusCode)
 	}
 	n.authCookie = ""
 	return nil
+}
+
+// ServerProperties will return the current state of the nessus instance.
+func (n *Nessus) ServerProperties() (*ServerProperties, error) {
+	log.Println("Server properties...")
+
+	resp, err := n.doRequest("GET", "/server/properties", nil, http.StatusOK)
+	if err != nil {
+		return nil, err
+	}
+	reply := &ServerProperties{}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	return reply, nil
 }
