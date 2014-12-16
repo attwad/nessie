@@ -49,7 +49,7 @@ func NewNessus(apiURL, caCertPath string, ignoreSSLCertsErrors bool) (*Nessus, e
 	}, nil
 }
 
-func (n *Nessus) doRequest(method string, resource string, data url.Values, wantStatus int) (resp *http.Response, err error) {
+func (n *Nessus) doRequest(method string, resource string, data url.Values, wantStatus []int) (resp *http.Response, err error) {
 	u, err := url.ParseRequestURI(n.apiURL)
 	if err != nil {
 		return nil, err
@@ -71,8 +71,15 @@ func (n *Nessus) doRequest(method string, resource string, data url.Values, want
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode != wantStatus {
-		return nil, fmt.Errorf("Unexpected status code during login, got %d wanted %d", resp.StatusCode, wantStatus)
+	var statusFound bool
+	for _, status := range wantStatus {
+		if resp.StatusCode == status {
+			statusFound = true
+			break
+		}
+	}
+	if !statusFound {
+		return nil, fmt.Errorf("Unexpected status code during login, got %d wanted %s", resp.StatusCode, wantStatus)
 	}
 	return resp, nil
 }
@@ -81,6 +88,7 @@ type loginResp struct {
 	Token string `json:"token"`
 }
 
+// ServerProperties is the structure returned by the ServerProperties() method.
 type ServerProperties struct {
 	Token           string `json:"token"`
 	NessusType      string `json:"nessus_type"`
@@ -106,6 +114,13 @@ type ServerProperties struct {
 	LoginBanner     bool   `json:"login_banner"`
 }
 
+// ServerStatus is the stucture returned  by the ServerStatus() method.
+type ServerStatus struct {
+	Status             string `json:"status"`
+	Progress           int64  `json:"progress"`
+	MustDestroySession bool
+}
+
 // Login will log into nessus with the username and passwords given from the command line flags.
 func (n *Nessus) Login(username, password string) error {
 	log.Printf("Login into %s\n", n.apiURL)
@@ -113,7 +128,7 @@ func (n *Nessus) Login(username, password string) error {
 	data.Set("username", username)
 	data.Set("password", password)
 
-	resp, err := n.doRequest("POST", "/session", data, http.StatusOK)
+	resp, err := n.doRequest("POST", "/session", data, []int{http.StatusOK})
 	if err != nil {
 		return err
 	}
@@ -133,7 +148,7 @@ func (n *Nessus) Logout() error {
 	}
 	log.Println("Logout...")
 
-	if _, err := n.doRequest("DELETE", "/session", nil, http.StatusOK); err != nil {
+	if _, err := n.doRequest("DELETE", "/session", nil, []int{http.StatusOK}); err != nil {
 		return err
 	}
 	n.authCookie = ""
@@ -144,13 +159,31 @@ func (n *Nessus) Logout() error {
 func (n *Nessus) ServerProperties() (*ServerProperties, error) {
 	log.Println("Server properties...")
 
-	resp, err := n.doRequest("GET", "/server/properties", nil, http.StatusOK)
+	resp, err := n.doRequest("GET", "/server/properties", nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
 	reply := &ServerProperties{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
+	}
+	return reply, nil
+}
+
+// ServerStatus will return the current status of the nessus instance.
+func (n *Nessus) ServerStatus() (*ServerStatus, error) {
+	log.Println("Server status...")
+
+	resp, err := n.doRequest("GET", "/server/status", nil, []int{http.StatusOK, http.StatusServiceUnavailable})
+	if err != nil {
+		return nil, err
+	}
+	reply := &ServerStatus{}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	if resp.StatusCode == http.StatusServiceUnavailable {
+		reply.MustDestroySession = true
 	}
 	return reply, nil
 }
