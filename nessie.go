@@ -207,3 +207,11 @@ func (n *Nessus) ListUsers() (*[]User, error) {
 	}
 	return &reply.Users, nil
 }
+
+// DeleteUser will remove a user from this nessus instance.
+func (n *Nessus) DeleteUser(userID int) error {
+	log.Println("Deleting user...")
+
+	_, err := n.doRequest("DELETE", fmt.Sprintf("/users/%d", userID), nil, []int{http.StatusOK})
+	return err
+}
