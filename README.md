@@ -86,9 +86,9 @@ Here are the resources accessible via the official API and their current impleme
   - Edit
   - Get
   - Password
-- Users ✗
-  - Create
-  - Delete
-  - Edit
-  - List
-  - Password
+- Users ✓
+  - Create ✓
+  - Delete ✓
+  - Edit ✓
+  - List ✓
+  - Password ✓
