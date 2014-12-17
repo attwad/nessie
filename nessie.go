@@ -226,4 +226,28 @@ func (n *Nessus) SetUserPassword(userID int, password string) error {
 	return err
 }
 
+// EditUser will edit certain information about a user.
+// Any non empty parameter will be set.
+func (n *Nessus) EditUser(userID int, permissions, name, email string) (*User, error) {
+	log.Println("Editing user...")
+	data := url.Values{}
+	if permissions != "" {
+		data.Set("permissions", permissions)
+	}
+	if name != "" {
+		data.Set("name", name)
+	}
+	if email != "" {
+		data.Set("email", email)
+	}
 
+	resp, err := n.doRequest("PUT", fmt.Sprintf("/users/%d", userID), data, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	reply := &User{}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	return reply, nil
+}
