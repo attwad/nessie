@@ -215,3 +215,15 @@ func (n *Nessus) DeleteUser(userID int) error {
 	_, err := n.doRequest("DELETE", fmt.Sprintf("/users/%d", userID), nil, []int{http.StatusOK})
 	return err
 }
+
+// SetUserPassword will change the password for the given user.
+func (n *Nessus) SetUserPassword(userID int, password string) error {
+	log.Println("Changing password of user...")
+	data := url.Values{}
+	data.Set("password", password)
+
+	_, err := n.doRequest("PUT", fmt.Sprintf("/users/%d/chpasswd", userID), data, []int{http.StatusOK})
+	return err
+}
+
+
