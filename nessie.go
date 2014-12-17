@@ -157,12 +157,12 @@ func (n *Nessus) ServerStatus() (*ServerStatus, error) {
 
 const (
 	UserTypeLocal = "local"
-	UserTypeLDAP = "ldap"
+	UserTypeLDAP  = "ldap"
 
-	Permissions0 = "0"
-	Permissions16 = "16"
-	Permissions32 = "32"
-	Permissions64 = "64"
+	Permissions0   = "0"
+	Permissions16  = "16"
+	Permissions32  = "32"
+	Permissions64  = "64"
 	Permissions128 = "128"
 )
 
