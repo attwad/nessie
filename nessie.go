@@ -192,3 +192,18 @@ func (n *Nessus) CreateUser(username, password, userType, permissions, name, ema
 	}
 	return reply, nil
 }
+
+// ListUsers will return the list of users on this nessus instance.
+func (n *Nessus) ListUsers() (*[]User, error) {
+	log.Println("Listing users...")
+
+	resp, err := n.doRequest("GET", "/users", nil, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	reply := &listUsersResp{}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	return &reply.Users, nil
+}

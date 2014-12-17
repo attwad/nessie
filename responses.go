@@ -37,3 +37,7 @@ type ServerStatus struct {
 	Progress           int64  `json:"progress"`
 	MustDestroySession bool
 }
+
+type listUsersResp struct {
+	Users []User `json:"users"`
+}
