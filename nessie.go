@@ -79,7 +79,11 @@ func (n *Nessus) doRequest(method string, resource string, data url.Values, want
 		}
 	}
 	if !statusFound {
-		return nil, fmt.Errorf("Unexpected status code during login, got %d wanted %s", resp.StatusCode, wantStatus)
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf("Unexpected status code, got %d wanted %v (%s)", resp.StatusCode, wantStatus, body)
 	}
 	return resp, nil
 }
@@ -147,6 +151,44 @@ func (n *Nessus) ServerStatus() (*ServerStatus, error) {
 	}
 	if resp.StatusCode == http.StatusServiceUnavailable {
 		reply.MustDestroySession = true
+	}
+	return reply, nil
+}
+
+const (
+	UserTypeLocal = "local"
+	UserTypeLDAP = "ldap"
+
+	Permissions0 = "0"
+	Permissions16 = "16"
+	Permissions32 = "32"
+	Permissions64 = "64"
+	Permissions128 = "128"
+)
+
+// CreateUser will register a new user with the nessus instance.
+// Name and email can be empty.
+func (n *Nessus) CreateUser(username, password, userType, permissions, name, email string) (*User, error) {
+	log.Println("Creating new user...")
+	data := url.Values{}
+	data.Set("username", username)
+	data.Set("password", password)
+	data.Set("permissions", permissions)
+	if name != "" {
+		data.Set("name", name)
+	}
+	if email != "" {
+		data.Set("email", email)
+	}
+	data.Set("type", userType)
+
+	resp, err := n.doRequest("POST", "/users", data, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	reply := &User{}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
 	}
 	return reply, nil
 }
