@@ -379,7 +379,6 @@ func (n *Nessus) AllPlugins() (chan PluginDetails, error) {
 		for {
 			id, more := <-idChan
 			if !more {
-				log.Println("No more IDs in channel")
 				break
 			}
 			plugin, err := n.PluginDetails(id)
@@ -392,7 +391,7 @@ func (n *Nessus) AllPlugins() (chan PluginDetails, error) {
 		}
 	}
 	// Launch our workers getting individual plugin details.
-	for i := 0; i < 20; i++ {
+	for i := 0; i < 10; i++ {
 		go pluginFetcher()
 	}
 
@@ -400,6 +399,7 @@ func (n *Nessus) AllPlugins() (chan PluginDetails, error) {
 		wgf.Wait()
 		wgp.Wait()
 		close(idChan)
+		close(plugChan)
 	}()
 
 	return plugChan, nil
