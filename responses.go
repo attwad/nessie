@@ -47,3 +47,9 @@ type FamilyDetails struct {
 	ID      int64    `json:"id"`
 	Plugins []Plugin `json:"plugins"`
 }
+
+type PluginDetails struct {
+	Plugin
+	FamilyName string       `json:"family_name"`
+	Attrs      []PluginAttr `json:"attributes"`
+}
