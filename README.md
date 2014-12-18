@@ -92,3 +92,7 @@ Here are the resources accessible via the official API and their current impleme
   - Edit ✓
   - List ✓
   - Password ✓
+
+Some methods are not part of the API but are implemented by this client to make life easier:
+
+-  Get all plugin details
