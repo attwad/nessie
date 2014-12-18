@@ -41,3 +41,9 @@ type ServerStatus struct {
 type listUsersResp struct {
 	Users []User `json:"users"`
 }
+
+type FamilyDetails struct {
+	Name    string   `json:"name"`
+	ID      int64    `json:"id"`
+	Plugins []Plugin `json:"plugins"`
+}

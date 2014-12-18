@@ -278,3 +278,17 @@ func (n *Nessus) PluginFamilies() ([]PluginFamily, error) {
 	}
 	return reply, nil
 }
+
+func (n *Nessus) FamilyDetails(ID int64) (*FamilyDetails, error) {
+	log.Println("Getting details of family...")
+
+	resp, err := n.doRequest("GET", fmt.Sprintf("/plugins/families/%d", ID), nil, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	reply := &FamilyDetails{}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	return reply, nil
+}
