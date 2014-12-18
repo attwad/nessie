@@ -32,5 +32,6 @@ func main() {
 	defer nessus.Logout()
 	//log.Println(nessus.PluginFamilies())
 	//log.Println(nessus.FamilyDetails(3))
-	log.Println(nessus.PluginDetails(72295))
+	//log.Println(nessus.PluginDetails(72295))
+	log.Println(nessus.Scanners())
 }

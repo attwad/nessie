@@ -306,3 +306,17 @@ func (n *Nessus) PluginDetails(ID int64) (*PluginDetails, error) {
 	}
 	return reply, nil
 }
+
+func (n *Nessus) Scanners() ([]Scanner, error) {
+	log.Println("Getting scanners list...")
+
+	resp, err := n.doRequest("GET", "/scanners", nil, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	var reply []Scanner
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	return reply, nil
+}
