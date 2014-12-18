@@ -348,9 +348,9 @@ func (n *Nessus) Scanners() ([]Scanner, error) {
 	return reply, nil
 }
 
-// AllPlugin wil hammer nessus with 20 workers asking for details of every plugins available and
-// feeding them in the returned channel. Gettign all the plugins is slow (usually takes a few
-// minutes on a decent machine.
+// AllPlugin wil hammer nessus asking for details of every plugins available and feeding them in
+// the returned channel.
+// Gettign all the plugins is slow (usually takes a few minutes on a decent machine).
 func (n *Nessus) AllPlugins() (chan PluginDetails, error) {
 	plugChan := make(chan PluginDetails, 20)
 
@@ -375,7 +375,8 @@ func (n *Nessus) AllPlugins() (chan PluginDetails, error) {
 			}
 		}(family.ID)
 	}
-	pluginFetcher := func() {
+	// Launch our worker getting individual plugin details.
+	go func() {
 		for {
 			id, more := <-idChan
 			if !more {
@@ -389,11 +390,7 @@ func (n *Nessus) AllPlugins() (chan PluginDetails, error) {
 			plugChan <- *plugin
 			wgp.Done()
 		}
-	}
-	// Launch our workers getting individual plugin details.
-	for i := 0; i < 10; i++ {
-		go pluginFetcher()
-	}
+	}()
 
 	go func() {
 		wgf.Wait()
