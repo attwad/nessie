@@ -30,4 +30,5 @@ func main() {
 	}
 	log.Println("Logged-in")
 	defer nessus.Logout()
+	log.Println(nessus.PluginFamilies())
 }

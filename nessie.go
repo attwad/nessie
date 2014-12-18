@@ -5,12 +5,20 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 )
+
+var debug bool
+
+func init() {
+	flag.BoolVar(&debug, "debug", false, "log the responses from nessus")
+}
 
 // Nessus implements most of the communication with Nessus.
 type Nessus struct {
@@ -70,6 +78,11 @@ func (n *Nessus) doRequest(method string, resource string, data url.Values, want
 	resp, err = n.client.Do(req)
 	if err != nil {
 		return nil, err
+	}
+	if debug {
+		if body, err := httputil.DumpResponse(resp, true); err == nil {
+			log.Println(string(body))
+		}
 	}
 	var statusFound bool
 	for _, status := range wantStatus {
@@ -246,6 +259,20 @@ func (n *Nessus) EditUser(userID int, permissions, name, email string) (*User, e
 		return nil, err
 	}
 	reply := &User{}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	return reply, nil
+}
+
+func (n *Nessus) PluginFamilies() ([]PluginFamily, error) {
+	log.Println("Getting list of plugin families...")
+
+	resp, err := n.doRequest("GET", "/plugins/families", nil, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	reply := make([]PluginFamily, 0)
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
 	}
