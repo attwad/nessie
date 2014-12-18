@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"sync"
 )
 
 var debug bool
@@ -103,7 +104,9 @@ func (n *Nessus) doRequest(method string, resource string, data url.Values, want
 
 // Login will log into nessus with the username and passwords given from the command line flags.
 func (n *Nessus) Login(username, password string) error {
-	log.Printf("Login into %s\n", n.apiURL)
+	if debug {
+		log.Printf("Login into %s\n", n.apiURL)
+	}
 	data := url.Values{}
 	data.Set("username", username)
 	data.Set("password", password)
@@ -126,7 +129,9 @@ func (n *Nessus) Logout() error {
 		log.Println("Not logged in, nothing to do to logout...")
 		return nil
 	}
-	log.Println("Logout...")
+	if debug {
+		log.Println("Logout...")
+	}
 
 	if _, err := n.doRequest("DELETE", "/session", nil, []int{http.StatusOK}); err != nil {
 		return err
@@ -137,7 +142,9 @@ func (n *Nessus) Logout() error {
 
 // ServerProperties will return the current state of the nessus instance.
 func (n *Nessus) ServerProperties() (*ServerProperties, error) {
-	log.Println("Server properties...")
+	if debug {
+		log.Println("Server properties...")
+	}
 
 	resp, err := n.doRequest("GET", "/server/properties", nil, []int{http.StatusOK})
 	if err != nil {
@@ -152,7 +159,9 @@ func (n *Nessus) ServerProperties() (*ServerProperties, error) {
 
 // ServerStatus will return the current status of the nessus instance.
 func (n *Nessus) ServerStatus() (*ServerStatus, error) {
-	log.Println("Server status...")
+	if debug {
+		log.Println("Server status...")
+	}
 
 	resp, err := n.doRequest("GET", "/server/status", nil, []int{http.StatusOK, http.StatusServiceUnavailable})
 	if err != nil {
@@ -182,7 +191,9 @@ const (
 // CreateUser will register a new user with the nessus instance.
 // Name and email can be empty.
 func (n *Nessus) CreateUser(username, password, userType, permissions, name, email string) (*User, error) {
-	log.Println("Creating new user...")
+	if debug {
+		log.Println("Creating new user...")
+	}
 	data := url.Values{}
 	data.Set("username", username)
 	data.Set("password", password)
@@ -208,7 +219,9 @@ func (n *Nessus) CreateUser(username, password, userType, permissions, name, ema
 
 // ListUsers will return the list of users on this nessus instance.
 func (n *Nessus) ListUsers() (*[]User, error) {
-	log.Println("Listing users...")
+	if debug {
+		log.Println("Listing users...")
+	}
 
 	resp, err := n.doRequest("GET", "/users", nil, []int{http.StatusOK})
 	if err != nil {
@@ -223,7 +236,9 @@ func (n *Nessus) ListUsers() (*[]User, error) {
 
 // DeleteUser will remove a user from this nessus instance.
 func (n *Nessus) DeleteUser(userID int) error {
-	log.Println("Deleting user...")
+	if debug {
+		log.Println("Deleting user...")
+	}
 
 	_, err := n.doRequest("DELETE", fmt.Sprintf("/users/%d", userID), nil, []int{http.StatusOK})
 	return err
@@ -231,7 +246,9 @@ func (n *Nessus) DeleteUser(userID int) error {
 
 // SetUserPassword will change the password for the given user.
 func (n *Nessus) SetUserPassword(userID int, password string) error {
-	log.Println("Changing password of user...")
+	if debug {
+		log.Println("Changing password of user...")
+	}
 	data := url.Values{}
 	data.Set("password", password)
 
@@ -242,7 +259,9 @@ func (n *Nessus) SetUserPassword(userID int, password string) error {
 // EditUser will edit certain information about a user.
 // Any non empty parameter will be set.
 func (n *Nessus) EditUser(userID int, permissions, name, email string) (*User, error) {
-	log.Println("Editing user...")
+	if debug {
+		log.Println("Editing user...")
+	}
 	data := url.Values{}
 	if permissions != "" {
 		data.Set("permissions", permissions)
@@ -266,13 +285,15 @@ func (n *Nessus) EditUser(userID int, permissions, name, email string) (*User, e
 }
 
 func (n *Nessus) PluginFamilies() ([]PluginFamily, error) {
-	log.Println("Getting list of plugin families...")
+	if debug {
+		log.Println("Getting list of plugin families...")
+	}
 
 	resp, err := n.doRequest("GET", "/plugins/families", nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
-	reply := make([]PluginFamily, 0)
+	var reply []PluginFamily
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
 	}
@@ -280,7 +301,9 @@ func (n *Nessus) PluginFamilies() ([]PluginFamily, error) {
 }
 
 func (n *Nessus) FamilyDetails(ID int64) (*FamilyDetails, error) {
-	log.Println("Getting details of family...")
+	if debug {
+		log.Println("Getting details of family...")
+	}
 
 	resp, err := n.doRequest("GET", fmt.Sprintf("/plugins/families/%d", ID), nil, []int{http.StatusOK})
 	if err != nil {
@@ -294,7 +317,9 @@ func (n *Nessus) FamilyDetails(ID int64) (*FamilyDetails, error) {
 }
 
 func (n *Nessus) PluginDetails(ID int64) (*PluginDetails, error) {
-	log.Println("Getting details plugin...")
+	if debug {
+		log.Println("Getting details plugin...")
+	}
 
 	resp, err := n.doRequest("GET", fmt.Sprintf("/plugins/plugin/%d", ID), nil, []int{http.StatusOK})
 	if err != nil {
@@ -308,7 +333,9 @@ func (n *Nessus) PluginDetails(ID int64) (*PluginDetails, error) {
 }
 
 func (n *Nessus) Scanners() ([]Scanner, error) {
-	log.Println("Getting scanners list...")
+	if debug {
+		log.Println("Getting scanners list...")
+	}
 
 	resp, err := n.doRequest("GET", "/scanners", nil, []int{http.StatusOK})
 	if err != nil {
@@ -319,4 +346,61 @@ func (n *Nessus) Scanners() ([]Scanner, error) {
 		return nil, err
 	}
 	return reply, nil
+}
+
+// AllPlugin wil hammer nessus with 20 workers asking for details of every plugins available and
+// feeding them in the returned channel. Gettign all the plugins is slow (usually takes a few
+// minutes on a decent machine.
+func (n *Nessus) AllPlugins() (chan PluginDetails, error) {
+	plugChan := make(chan PluginDetails, 20)
+
+	families, err := n.PluginFamilies()
+	if err != nil {
+		return nil, err
+	}
+	idChan := make(chan int64, 20)
+	var wgf sync.WaitGroup
+	var wgp sync.WaitGroup
+	for _, family := range families {
+		wgf.Add(1)
+		go func(famID int64) {
+			defer wgf.Done()
+			famDetails, err := n.FamilyDetails(famID)
+			if err != nil {
+				return
+			}
+			for _, plugin := range famDetails.Plugins {
+				wgp.Add(1)
+				idChan <- plugin.ID
+			}
+		}(family.ID)
+	}
+	pluginFetcher := func() {
+		for {
+			id, more := <-idChan
+			if !more {
+				log.Println("No more IDs in channel")
+				break
+			}
+			plugin, err := n.PluginDetails(id)
+			if err != nil {
+				wgp.Done()
+				continue
+			}
+			plugChan <- *plugin
+			wgp.Done()
+		}
+	}
+	// Launch our workers getting individual plugin details.
+	for i := 0; i < 20; i++ {
+		go pluginFetcher()
+	}
+
+	go func() {
+		wgf.Wait()
+		wgp.Wait()
+		close(idChan)
+	}()
+
+	return plugChan, nil
 }
