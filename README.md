@@ -38,10 +38,10 @@ Here are the resources accessible via the official API and their current impleme
 - Permissions ✗
   - Change
   - List
-- Plugins ✗
-  - Families
-  - Family details
-  - Plugin details
+- Plugins ✓
+  - Families ✓
+  - Family details ✓
+  - Plugin details ✓
 - Plugin rules ✗
   - Create
   - Delete
@@ -56,8 +56,8 @@ Here are the resources accessible via the official API and their current impleme
   - Import
   - Export
   - List
-- Scanners ✗
-  - List
+- Scanners ✓
+  - List ✓
 - Scans ✗
   - Configure
   - Create
@@ -86,9 +86,9 @@ Here are the resources accessible via the official API and their current impleme
   - Edit
   - Get
   - Password
-- Users ✗
-  - Create
-  - Delete
-  - Edit
-  - List
-  - Password
+- Users ✓
+  - Create ✓
+  - Delete ✓
+  - Edit ✓
+  - List ✓
+  - Password ✓
