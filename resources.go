@@ -73,7 +73,7 @@ type Folder struct {
 	ID          int64  `json:"id"`
 	Name        string `json:"name"`
 	Type        string `json:"type"`
-	DefaultTag  string `json:"default_tag"`
+	DefaultTag  int64  `json:"default_tag"`
 	Custom      int64  `json:"custom"`
 	UnreadCount int64  `json:"unread_count"`
 }
@@ -134,7 +134,7 @@ type Policy struct {
 	TemplateUUID         string `json:"template_uuid"`
 	Name                 string `json:"uuid"`
 	Desc                 string `json:"description"`
-	OwnerID              int64 `json:"owner_id"`
+	OwnerID              int64  `json:"owner_id"`
 	Owner                string `json:"owner"`
 	Shared               int64  `json:"shared"`
 	UserPerms            int64  `json:"user_permissions"`
@@ -167,7 +167,7 @@ type Scan struct {
 	UUID                 string `json:"uuid"`
 	Name                 string `json:"name"`
 	Owner                string `json:"owner"`
-	FolderID             string `json:"folder_id"`
+	FolderID             int64  `json:"folder_id"`
 	Read                 bool   `json:"read"`
 	Status               string `json:"status"`
 	Shared               bool   `json:"shared"`

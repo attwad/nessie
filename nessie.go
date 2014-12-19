@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 	"sync"
 )
 
@@ -58,7 +59,7 @@ func NewNessus(apiURL, caCertPath string, ignoreSSLCertsErrors bool) (*Nessus, e
 	}, nil
 }
 
-func (n *Nessus) doRequest(method string, resource string, data url.Values, wantStatus []int) (resp *http.Response, err error) {
+func (n *Nessus) doRequest(method string, resource string, js interface{}, wantStatus []int) (resp *http.Response, err error) {
 	u, err := url.ParseRequestURI(n.apiURL)
 	if err != nil {
 		return nil, err
@@ -66,16 +67,27 @@ func (n *Nessus) doRequest(method string, resource string, data url.Values, want
 	u.Path = resource
 	urlStr := fmt.Sprintf("%v", u)
 
-	req, err := http.NewRequest(method, urlStr, bytes.NewBufferString(data.Encode()))
+	jb, err := json.Marshal(js)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded;charset=utf-8")
+	req, err := http.NewRequest(method, urlStr, bytes.NewBufferString(string(jb)))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Accept", "application/json")
 	if n.authCookie != "" {
 		req.Header.Add("X-Cookie", fmt.Sprintf("token=%s", n.authCookie))
 	}
 
+	if debug {
+		db, err := httputil.DumpRequest(req, true)
+		if err != nil {
+			return nil, err
+		}
+		log.Println("sending data:", string(db))
+	}
 	resp, err = n.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -107,9 +119,10 @@ func (n *Nessus) Login(username, password string) error {
 	if debug {
 		log.Printf("Login into %s\n", n.apiURL)
 	}
-	data := url.Values{}
-	data.Set("username", username)
-	data.Set("password", password)
+	data := loginRequest{
+		Username: username,
+		Password: password,
+	}
 
 	resp, err := n.doRequest("POST", "/session", data, []int{http.StatusOK})
 	if err != nil {
@@ -194,17 +207,18 @@ func (n *Nessus) CreateUser(username, password, userType, permissions, name, ema
 	if debug {
 		log.Println("Creating new user...")
 	}
-	data := url.Values{}
-	data.Set("username", username)
-	data.Set("password", password)
-	data.Set("permissions", permissions)
+	data := createUserRequest{
+		Username:    username,
+		Password:    password,
+		Permissions: permissions,
+		Type:        userType,
+	}
 	if name != "" {
-		data.Set("name", name)
+		data.Name = name
 	}
 	if email != "" {
-		data.Set("email", email)
+		data.Email = email
 	}
-	data.Set("type", userType)
 
 	resp, err := n.doRequest("POST", "/users", data, []int{http.StatusOK})
 	if err != nil {
@@ -249,8 +263,9 @@ func (n *Nessus) SetUserPassword(userID int, password string) error {
 	if debug {
 		log.Println("Changing password of user...")
 	}
-	data := url.Values{}
-	data.Set("password", password)
+	data := setUserPasswordRequest{
+		Password: password,
+	}
 
 	_, err := n.doRequest("PUT", fmt.Sprintf("/users/%d/chpasswd", userID), data, []int{http.StatusOK})
 	return err
@@ -262,15 +277,16 @@ func (n *Nessus) EditUser(userID int, permissions, name, email string) (*User, e
 	if debug {
 		log.Println("Editing user...")
 	}
-	data := url.Values{}
+	data := editUserRequest{}
+
 	if permissions != "" {
-		data.Set("permissions", permissions)
+		data.Permissions = permissions
 	}
 	if name != "" {
-		data.Set("name", name)
+		data.Name = name
 	}
 	if email != "" {
-		data.Set("email", email)
+		data.Email = email
 	}
 
 	resp, err := n.doRequest("PUT", fmt.Sprintf("/users/%d", userID), data, []int{http.StatusOK})
@@ -416,4 +432,80 @@ func (n *Nessus) Policies() ([]Policy, error) {
 		return nil, err
 	}
 	return reply.Policies, nil
+}
+
+const (
+	LaunchOnDemand = "ON_DEMAND"
+	LaunchDaily    = "DAILY"
+	LaunchWeekly   = "WEEKLY"
+	LaunchMonthly  = "MONTHLY"
+	LaunchYearly   = "YEARLY"
+)
+
+func (n *Nessus) NewScan(
+	editorTmplUUID string,
+	settingsName string,
+	outputFolderID int64,
+	policyID int64,
+	scannerID int64,
+	launch string,
+	targets []string) (*Scan, error) {
+	if debug {
+		log.Println("Creating a new scan...")
+	}
+
+	data := newScanRequest{
+		UUID: editorTmplUUID,
+		Settings: scanSettingsRequest{
+			Name:        settingsName,
+			Desc:        "Some description",
+			FolderID:    outputFolderID,
+			ScannerID:   scannerID,
+			PolicyID:    policyID,
+			Launch:      launch,
+			TextTargets: strings.Join(targets, ", "),
+		},
+	}
+
+	resp, err := n.doRequest("POST", "/scans", data, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	reply := &Scan{}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	return reply, nil
+}
+
+func (n *Nessus) Scans() (*ListScansResponse, error) {
+	if debug {
+		log.Println("Getting scans list...")
+	}
+
+	resp, err := n.doRequest("GET", "/scans", nil, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	reply := &ListScansResponse{}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	return reply, nil
+}
+
+func (n *Nessus) ScanTemplates() ([]Template, error) {
+	if debug {
+		log.Println("Getting scans templates...")
+	}
+
+	resp, err := n.doRequest("GET", "/editor/scans/templates", nil, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	reply := &listTemplatesResp{}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	return reply.Templates, nil
 }

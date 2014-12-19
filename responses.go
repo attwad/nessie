@@ -57,3 +57,13 @@ type PluginDetails struct {
 type listPoliciesResp struct {
 	Policies []Policy `json:"policies"`
 }
+
+type ListScansResponse struct {
+	Folders   []Folder `json:"folders"`
+	Scans     []Scan   `json:"scans"`
+	Timestamp int64    `json:"timestamp"`
+}
+
+type listTemplatesResp struct {
+	Templates []Template `json:"tempaltes"`
+}
