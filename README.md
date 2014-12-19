@@ -18,7 +18,7 @@ Here are the resources accessible via the official API and their current impleme
 - Editor ✗
   - Details
   - Edit
-  - List
+  - List ✓
   - Plugin description
 - File ✗
   - Upload
@@ -55,12 +55,12 @@ Here are the resources accessible via the official API and their current impleme
   - Details
   - Import
   - Export
-  - List
+  - List ✓
 - Scanners ✓
   - List ✓
 - Scans ✗
   - Configure
-  - Create
+  - Create ✓
   - Delete
   - Delete history
   - Details
@@ -70,7 +70,7 @@ Here are the resources accessible via the official API and their current impleme
   - Host details
   - Import
   - Launch
-  - List
+  - List ✓
   - Pause
   - Plugin output
   - Read status
