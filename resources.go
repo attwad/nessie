@@ -134,7 +134,7 @@ type Policy struct {
 	TemplateUUID         string `json:"template_uuid"`
 	Name                 string `json:"uuid"`
 	Desc                 string `json:"description"`
-	OwnerID              string `json:"owner_id"`
+	OwnerID              int64 `json:"owner_id"`
 	Owner                string `json:"owner"`
 	Shared               int64  `json:"shared"`
 	UserPerms            int64  `json:"user_permissions"`

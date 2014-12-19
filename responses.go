@@ -53,3 +53,7 @@ type PluginDetails struct {
 	FamilyName string       `json:"family_name"`
 	Attrs      []PluginAttr `json:"attributes"`
 }
+
+type listPoliciesResp struct {
+	Policies []Policy `json:"policies"`
+}

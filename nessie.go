@@ -401,3 +401,19 @@ func (n *Nessus) AllPlugins() (chan PluginDetails, error) {
 
 	return plugChan, nil
 }
+
+func (n *Nessus) Policies() ([]Policy, error) {
+	if debug {
+		log.Println("Getting policies list...")
+	}
+
+	resp, err := n.doRequest("GET", "/policies", nil, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	var reply listPoliciesResp
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	return reply.Policies, nil
+}

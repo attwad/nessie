@@ -4,7 +4,6 @@ import (
 	"flag"
 	"github.com/attwad/nessie"
 	"log"
-	"time"
 )
 
 var apiURL, username, password, caCertPath, loginFile string
@@ -32,14 +31,5 @@ func main() {
 	log.Println("Logged-in")
 	defer nessus.Logout()
 
-	startTime := time.Now()
-	c, err := nessus.AllPlugins()
-	if err != nil {
-		return
-	}
-	for p := range c {
-		log.Println(p.ID)
-	}
-	elapsed := time.Since(startTime)
-	log.Println("Took ", elapsed.String())
+	log.Println(nessus.Policies())
 }
