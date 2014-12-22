@@ -31,10 +31,6 @@ func main() {
 	log.Println("Logged-in")
 	defer nessus.Logout()
 
-	log.Println(nessus.Scans())
-	//log.Println(nessus.StartScan(5))
-	//log.Println(nessus.StopScan(5))
-	//log.Println(nessus.DeleteScan(5))
-	//log.Println(nessus.PauseScan(5))
-	//log.Println(nessus.ResumeScan(5))
+	//log.Println(nessus.Scans())
+	log.Println(nessus.ScanDetails(13))
 }

@@ -71,3 +71,41 @@ type listTemplatesResp struct {
 type startScanResp struct {
 	UUID string `json:"scan_uuid"`
 }
+
+type ScanDetailsResp struct {
+	UUID string `json:"scan_uuid"`
+	Info struct {
+		EditAllowed   bool   `json:"edit_allowed"`
+		Status        string `json:"status"`
+		Policy        string `json:"policy"`
+		PCICanUpload  bool   `json:"pci-can-upload"`
+		HasAuditTrail bool   `json:"hasaudittrail"`
+		ScanStart     int64  `json:"scan_start"`
+		FolderID      int64  `json:"folder_id"`
+		Targets       string `json:"targets"`
+		Timestamp     int64  `json:"timestamp"`
+		ObjectID      int64  `json:"object_id"`
+		ScannerName   string `json:"scanner_name"`
+		HasKB         bool   `json:"haskb"`
+		UUID          string `json:"uuid"`
+		HostCount     int64  `json:"hostcount"`
+		ScanEnd       int64  `json:"scan_end"`
+		Name          string `json:"name"`
+		UserPerms     int64  `json:"user_permissions"`
+		Control       bool   `json:"control"`
+	} `json:"info"`
+	Hosts        []Host `json:"hosts"`
+	CompHosts    []Host `json:"comphosts"`
+	Notes        []Note `json:"notes"`
+	Remediations struct {
+		Remediation Remediation `json:"remediation"`
+	} `json:"remediations"`
+	NumHosts          int64           `json:"num_hosts"`
+	NumCVEs           int64           `json:"num_cves"`
+	NumImpactedHosts  int64           `json:"num_impacted_hosts"`
+	NumRemediatedCVEs int64           `json:"num_remediated_cves"`
+	Vulnerabilities   []Vulnerability `json:"vulnerabilities"`
+	Compliance        []Vulnerability `json:"compliance"`
+	History           []History       `json:"history"`
+	Filters           []Filter        `json:"filters"`
+}

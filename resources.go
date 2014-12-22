@@ -182,7 +182,7 @@ type Scan struct {
 
 type Host struct {
 	HostID                int64  `json:"host_id"`
-	HostIdx               string `json:"host_index"`
+	HostIdx               int64  `json:"host_index"`
 	Hostname              string `json:"hostname"`
 	Progress              string `json:"progress"`
 	Critical              int64  `json:"critical"`

@@ -562,3 +562,19 @@ func (n *Nessus) DeleteScan(scanID int) error {
 	_, err := n.doRequest("DELETE", fmt.Sprintf("/scans/%d", scanID), nil, []int{http.StatusOK})
 	return err
 }
+
+func (n *Nessus) ScanDetails(scanID int) (*ScanDetailsResp, error) {
+	if debug {
+		log.Println("Getting details about a scan...")
+	}
+
+	resp, err := n.doRequest("GET", fmt.Sprintf("/scans/%d", scanID), nil, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	reply := &ScanDetailsResp{}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	return reply, nil
+}
