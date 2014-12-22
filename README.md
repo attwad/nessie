@@ -76,7 +76,7 @@ Here are the resources accessible via the official API and their current impleme
   - Read status
   - Resume ✓
   - Stop ✓
-  - Timezones
+  - Timezones ✓a
 - Server ✓
   - Properties ✓
   - Status ✓ 
