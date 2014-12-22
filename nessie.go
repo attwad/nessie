@@ -510,7 +510,7 @@ func (n *Nessus) ScanTemplates() ([]Template, error) {
 	return reply.Templates, nil
 }
 
-// Starts the given scan and returns its UUID.
+// StartScan starts the given scan and returns its UUID.
 func (n *Nessus) StartScan(scanID int) (string, error) {
 	if debug {
 		log.Println("Starting scan...")
@@ -525,4 +525,40 @@ func (n *Nessus) StartScan(scanID int) (string, error) {
 		return "", err
 	}
 	return reply.UUID, nil
+}
+
+func (n *Nessus) PauseScan(scanID int) error {
+	if debug {
+		log.Println("Pausing scan...")
+	}
+
+	_, err := n.doRequest("POST", fmt.Sprintf("/scans/%d/pause", scanID), nil, []int{http.StatusOK})
+	return err
+}
+
+func (n *Nessus) ResumeScan(scanID int) error {
+	if debug {
+		log.Println("Resume scan...")
+	}
+
+	_, err := n.doRequest("POST", fmt.Sprintf("/scans/%d/resume", scanID), nil, []int{http.StatusOK})
+	return err
+}
+
+func (n *Nessus) StopScan(scanID int) error {
+	if debug {
+		log.Println("Stop scan...")
+	}
+
+	_, err := n.doRequest("POST", fmt.Sprintf("/scans/%d/stop", scanID), nil, []int{http.StatusOK})
+	return err
+}
+
+func (n *Nessus) DeleteScan(scanID int) error {
+	if debug {
+		log.Println("Deleting scan...")
+	}
+
+	_, err := n.doRequest("DELETE", fmt.Sprintf("/scans/%d", scanID), nil, []int{http.StatusOK})
+	return err
 }
