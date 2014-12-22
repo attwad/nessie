@@ -61,21 +61,21 @@ Here are the resources accessible via the official API and their current impleme
 - Scans ✗
   - Configure
   - Create ✓
-  - Delete
+  - Delete ✓
   - Delete history
-  - Details
+  - Details ✓
   - Download
   - Export
   - Export status
   - Host details
   - Import
-  - Launch
+  - Launch ✓
   - List ✓
-  - Pause
+  - Pause ✓
   - Plugin output
   - Read status
-  - Resume
-  - Stop
+  - Resume ✓
+  - Stop ✓
   - Timezones
 - Server ✓
   - Properties ✓
