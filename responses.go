@@ -67,3 +67,7 @@ type ListScansResponse struct {
 type listTemplatesResp struct {
 	Templates []Template `json:"tempaltes"`
 }
+
+type startScanResp struct {
+	UUID string `json:"scan_uuid"`
+}
