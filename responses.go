@@ -109,3 +109,7 @@ type ScanDetailsResp struct {
 	History           []History       `json:"history"`
 	Filters           []Filter        `json:"filters"`
 }
+
+type tzResp struct {
+	timezones []TimeZone `json:"timezones"`
+}

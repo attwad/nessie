@@ -32,5 +32,6 @@ func main() {
 	defer nessus.Logout()
 
 	//log.Println(nessus.Scans())
-	log.Println(nessus.ScanDetails(13))
+	//log.Println(nessus.ScanDetails(13))
+	log.Println(nessus.Timezones())
 }

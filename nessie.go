@@ -578,3 +578,19 @@ func (n *Nessus) ScanDetails(scanID int) (*ScanDetailsResp, error) {
 	}
 	return reply, nil
 }
+
+func (n *Nessus) Timezones() ([]TimeZone, error) {
+	if debug {
+		log.Println("Getting list of timezones...")
+	}
+
+	resp, err := n.doRequest("GET", "/scans/timezones", nil, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	reply := &tzResp{}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	return reply.timezones, nil
+}
