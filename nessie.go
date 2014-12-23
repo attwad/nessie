@@ -510,6 +510,22 @@ func (n *Nessus) ScanTemplates() ([]Template, error) {
 	return reply.Templates, nil
 }
 
+func (n *Nessus) PolicyTemplates() ([]Template, error) {
+	if debug {
+		log.Println("Getting policy templates...")
+	}
+
+	resp, err := n.doRequest("GET", "/editor/policy/templates", nil, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	reply := &listTemplatesResp{}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	return reply.Templates, nil
+}
+
 // StartScan starts the given scan and returns its UUID.
 func (n *Nessus) StartScan(scanID int) (string, error) {
 	if debug {
