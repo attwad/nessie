@@ -22,11 +22,11 @@ Here are the resources accessible via the official API and their current impleme
   - Plugin description
 - File ✗
   - Upload
-- Folders ✗
-  - Create
-  - Delete
-  - Edit
-  - List
+- Folders ✓
+  - Create ✓
+  - Delete ✓
+  - Edit ✓
+  - List ✓
 - Groups ✗
   - Add user
   - Create
