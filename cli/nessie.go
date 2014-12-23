@@ -33,5 +33,6 @@ func main() {
 
 	//log.Println(nessus.Scans())
 	//log.Println(nessus.ScanDetails(13))
-	log.Println(nessus.Folders())
+	// log.Println(nessus.Folders())
+	log.Println(nessus.CreateFolder("test folder 2"))
 }

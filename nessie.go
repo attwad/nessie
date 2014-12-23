@@ -626,3 +626,13 @@ func (n *Nessus) Folders() ([]Folder, error) {
 	}
 	return reply.Folders, nil
 }
+
+func (n *Nessus) CreateFolder(name string) error {
+	if debug {
+		log.Println("Creating folders...")
+	}
+
+	req := createFolderRequest{Name: name}
+	_, err := n.doRequest("POST", "/folders", req, []int{http.StatusOK})
+	return err
+}

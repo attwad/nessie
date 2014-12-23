@@ -39,3 +39,7 @@ type newScanRequest struct {
 	UUID     string              `json:"uuid"`
 	Settings scanSettingsRequest `json:"settings"`
 }
+
+type createFolderRequest struct {
+	Name string `json:"name"`
+}
