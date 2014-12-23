@@ -111,5 +111,9 @@ type ScanDetailsResp struct {
 }
 
 type tzResp struct {
-	timezones []TimeZone `json:"timezones"`
+	Timezones []TimeZone `json:"timezones"`
+}
+
+type listFoldersResp struct {
+	Folders []Folder `json:"folders"`
 }

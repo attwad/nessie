@@ -33,5 +33,5 @@ func main() {
 
 	//log.Println(nessus.Scans())
 	//log.Println(nessus.ScanDetails(13))
-	log.Println(nessus.Timezones())
+	log.Println(nessus.Folders())
 }

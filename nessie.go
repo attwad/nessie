@@ -608,5 +608,21 @@ func (n *Nessus) Timezones() ([]TimeZone, error) {
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
 	}
-	return reply.timezones, nil
+	return reply.Timezones, nil
+}
+
+func (n *Nessus) Folders() ([]Folder, error) {
+	if debug {
+		log.Println("Getting list of folders...")
+	}
+
+	resp, err := n.doRequest("GET", "/folders", nil, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	reply := &listFoldersResp{}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	return reply.Folders, nil
 }
