@@ -47,3 +47,7 @@ type createFolderRequest struct {
 type editFolderRequest struct {
 	Name string `json:"name"`
 }
+
+type exportScanRequest struct {
+	Format string `json:"format"`
+}

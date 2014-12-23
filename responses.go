@@ -117,3 +117,11 @@ type tzResp struct {
 type listFoldersResp struct {
 	Folders []Folder `json:"folders"`
 }
+
+type exportScanResp struct {
+	File int64 `json:"file"`
+}
+
+type exportStatusResp struct {
+	Status string `json:"status"`
+}

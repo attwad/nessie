@@ -655,3 +655,65 @@ func (n *Nessus) DeleteFolder(folderID int64) error {
 	_, err := n.doRequest("DELETE", fmt.Sprintf("/folders/%d", folderID), nil, []int{http.StatusOK})
 	return err
 }
+
+const (
+	ExportNessus = "nessus"
+	ExportPDF    = "pdf"
+	ExportHTML   = "html"
+	ExportCSV    = "csv"
+	ExportDB     = "db"
+)
+
+// ExportsScan exports a scan to a File resource.
+// Call ExportStatus to get the status of the export and call Download() to download the actual file.
+func (n *Nessus) ExportScan(scanID int64, format string) (int64, error) {
+	if debug {
+		log.Println("Exporting scan...")
+	}
+
+	req := exportScanRequest{Format: format}
+	resp, err := n.doRequest("POST", fmt.Sprintf("/scans/%d/export", scanID), req, []int{http.StatusOK})
+	if err != nil {
+		return 0, err
+	}
+	reply := &exportScanResp{}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return 0, err
+	}
+	return reply.File, nil
+}
+
+// ExportFinished returns whether the given scan export file has finished being prepared.
+func (n *Nessus) ExportFinished(scanID, exportID int64) (bool, error) {
+	if debug {
+		log.Println("Getting export status...")
+	}
+
+	resp, err := n.doRequest("GET", fmt.Sprintf("/scans/%d/export/%d/status", scanID, exportID), nil, []int{http.StatusOK})
+	if err != nil {
+		return false, err
+	}
+	reply := &exportStatusResp{}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return false, err
+	}
+	return reply.Status == "ready", nil
+}
+
+// SaveExport will download the given export from nessus.
+func (n *Nessus) DownloadExport(scanID, exportID int64) ([]byte, error) {
+	if debug {
+		log.Println("Downloading export file...")
+	}
+
+	resp, err := n.doRequest("GET", fmt.Sprintf("/scans/%d/export/%d/download", scanID, exportID), nil, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+	return body, err
+}

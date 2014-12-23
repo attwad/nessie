@@ -32,7 +32,7 @@ func main() {
 	defer nessus.Logout()
 
 	//log.Println(nessus.Scans())
-	//log.Println(nessus.ScanDetails(13))
-	log.Println(nessus.Folders())
-	log.Println(nessus.DeleteFolder(15))
+	//log.Println(nessus.ExportScan(13, nessie.ExportHTML))
+	//log.Println(nessus.ExportFinished(13, 18858850))
+	log.Println(nessus.DownloadExport(13, 18858850))
 }
