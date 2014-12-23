@@ -12,9 +12,6 @@ Status
 
 Here are the resources accessible via the official API and their current implementation status in this client:
 
-✓) Implemented 
-✗) Not implemented yet
-
 - Editor ✗
   - Details
   - Edit
@@ -64,10 +61,10 @@ Here are the resources accessible via the official API and their current impleme
   - Delete ✓
   - Delete history
   - Details ✓
-  - Download
-  - Export
-  - Export status
-  - Host details
+  - Download ✓
+  - Export ✓
+  - Export status ✓a
+  - Host details 
   - Import
   - Launch ✓
   - List ✓
