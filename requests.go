@@ -43,3 +43,7 @@ type newScanRequest struct {
 type createFolderRequest struct {
 	Name string `json:"name"`
 }
+
+type editFolderRequest struct {
+	Name string `json:"name"`
+}

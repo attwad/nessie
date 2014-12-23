@@ -636,3 +636,22 @@ func (n *Nessus) CreateFolder(name string) error {
 	_, err := n.doRequest("POST", "/folders", req, []int{http.StatusOK})
 	return err
 }
+
+func (n *Nessus) EditFolder(folderID int64, newName string) error {
+	if debug {
+		log.Println("Editing folders...")
+	}
+
+	req := editFolderRequest{Name: newName}
+	_, err := n.doRequest("PUT", fmt.Sprintf("/folders/%d", folderID), req, []int{http.StatusOK})
+	return err
+}
+
+func (n *Nessus) DeleteFolder(folderID int64) error {
+	if debug {
+		log.Println("Deleting folders...")
+	}
+
+	_, err := n.doRequest("DELETE", fmt.Sprintf("/folders/%d", folderID), nil, []int{http.StatusOK})
+	return err
+}
