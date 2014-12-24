@@ -125,3 +125,7 @@ type exportScanResp struct {
 type exportStatusResp struct {
 	Status string `json:"status"`
 }
+
+type listGroupsResp struct {
+	Groups []Group `json:"groups"`
+}

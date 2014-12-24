@@ -31,8 +31,8 @@ func main() {
 	log.Println("Logged-in")
 	defer nessus.Logout()
 
-	//log.Println(nessus.Scans())
-	//log.Println(nessus.ExportScan(13, nessie.ExportHTML))
-	//log.Println(nessus.ExportFinished(13, 18858850))
-	log.Println(nessus.DownloadExport(13, 18858850))
+	//log.Println(nessus.ListGroups())
+	//log.Println(nessus.CreateGroup("test group"))
+	log.Println(nessus.Scanners())
+	log.Println(nessus.Permissions("scanner", 1))
 }

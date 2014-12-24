@@ -717,3 +717,56 @@ func (n *Nessus) DownloadExport(scanID, exportID int64) ([]byte, error) {
 	}
 	return body, err
 }
+
+// TODO: Currently returns a 404... not exposed yet?
+func (n *Nessus) ListGroups() ([]Group, error) {
+	if debug {
+		log.Println("Listing groups...")
+	}
+
+	resp, err := n.doRequest("GET", "/groups", nil, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	reply := &listGroupsResp{}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	return reply.Groups, nil
+}
+
+// TODO: Currently returns a 404... not exposed yet?
+func (n *Nessus) CreateGroup(name string) (Group, error) {
+	if debug {
+		log.Println("Creating a group...")
+	}
+
+	req := createGroupRequest{
+		Name: name,
+	}
+	resp, err := n.doRequest("POST", "/groups", req, []int{http.StatusOK})
+	if err != nil {
+		return Group{}, err
+	}
+	var reply Group
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return Group{}, err
+	}
+	return reply, nil
+}
+
+func (n *Nessus) Permissions(objectType string, objectID int64) ([]Permission, error) {
+	if debug {
+		log.Println("Creating a group...")
+	}
+
+	resp, err := n.doRequest("GET", fmt.Sprintf("/permissions/%s/%d", objectType, objectID), nil, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	var reply []Permission
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	return reply, nil
+}

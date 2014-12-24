@@ -51,3 +51,7 @@ type editFolderRequest struct {
 type exportScanRequest struct {
 	Format string `json:"format"`
 }
+
+type createGroupRequest struct {
+	Name string `json:"name"`
+}
