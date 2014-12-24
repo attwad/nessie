@@ -153,6 +153,23 @@ func (n *Nessus) Logout() error {
 	return nil
 }
 
+// Session will return the details for the current session.
+func (n *Nessus) Session() (Session, error) {
+	if debug {
+		log.Printf("Getting details for current session...")
+	}
+
+	resp, err := n.doRequest("GET", "/session", nil, []int{http.StatusOK})
+	if err != nil {
+		return Session{}, err
+	}
+	var reply Session
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return Session{}, err
+	}
+	return reply, nil
+}
+
 // ServerProperties will return the current state of the nessus instance.
 func (n *Nessus) ServerProperties() (*ServerProperties, error) {
 	if debug {

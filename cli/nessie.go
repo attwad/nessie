@@ -33,6 +33,7 @@ func main() {
 
 	//log.Println(nessus.ListGroups())
 	//log.Println(nessus.CreateGroup("test group"))
-	log.Println(nessus.Scanners())
-	log.Println(nessus.Permissions("scanner", 1))
+	//log.Println(nessus.Scanners())
+	//log.Println(nessus.Permissions("scanner", 1))
+	log.Println(nessus.Session())
 }

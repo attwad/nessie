@@ -266,7 +266,7 @@ type TimeZone struct {
 // Sessions resources.
 
 type Session struct {
-	ID          string   `json:"id"`
+	ID          int64    `json:"id"`
 	Username    string   `json:"username"`
 	Email       string   `json:"email"`
 	Name        string   `json:"name"`
