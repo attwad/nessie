@@ -12,39 +12,40 @@ Status
 
 Here are the resources accessible via the official API and their current implementation status in this client:
 
-- Editor ✗
+- Editor
   - Details
   - Edit
-  - List ✓
+  - List policy templates ✓
+  - List scan templates ✓
   - Plugin description
-- File ✗
+- File
   - Upload
 - Folders ✓
   - Create ✓
   - Delete ✓
   - Edit ✓
   - List ✓
-- Groups ✗
+- Groups
   - Add user
-  - Create
+  - Create ✓
   - Delete
   - Delete user
   - Edit
-  - List
+  - List ✓
   - List users
-- Permissions ✗
+- Permissions
   - Change
-  - List
+  - List ✓
 - Plugins ✓
   - Families ✓
   - Family details ✓
   - Plugin details ✓
-- Plugin rules ✗
+- Plugin rules
   - Create
   - Delete
   - Edit
   - List
-- Policies ✗
+- Policies
   - Configure
   - Copy
   - Create
@@ -55,7 +56,7 @@ Here are the resources accessible via the official API and their current impleme
   - List ✓
 - Scanners ✓
   - List ✓
-- Scans ✗
+- Scans
   - Configure
   - Create ✓
   - Delete ✓
@@ -63,7 +64,7 @@ Here are the resources accessible via the official API and their current impleme
   - Details ✓
   - Download ✓
   - Export ✓
-  - Export status ✓a
+  - Export status ✓
   - Host details 
   - Import
   - Launch ✓
@@ -81,7 +82,7 @@ Here are the resources accessible via the official API and their current impleme
   - Create ✓
   - Destroy ✓
   - Edit
-  - Get
+  - Get ✓
   - Password
 - Users ✓
   - Create ✓
