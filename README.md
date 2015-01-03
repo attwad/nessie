@@ -7,6 +7,11 @@ Nessie
 Tenable Nessus 6 API client in Go.
 
 
+Usage
+-----
+
+Have a look at [the client example](https://github.com/attwad/nessie/blob/master/cli/nessie.go) for how to start a scan, wait until it finishes and exports the results to a CSV file.
+
 Status
 ------
 
