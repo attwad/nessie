@@ -30,6 +30,7 @@ func main() {
 		return
 	}
 	log.Println("Logged-in")
+	defer nessus.Logout()
 
 	var scanID int64 = 13
 	// We only care about the last scan, so no use for the scan UUID here.
@@ -70,6 +71,4 @@ func main() {
 	if err := ioutil.WriteFile("report.csv", csv, 0600); err != nil {
 		panic(err)
 	}
-
-	defer nessus.Logout()
 }
