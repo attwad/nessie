@@ -547,7 +547,7 @@ func (n *Nessus) PolicyTemplates() ([]Template, error) {
 }
 
 // StartScan starts the given scan and returns its UUID.
-func (n *Nessus) StartScan(scanID int) (string, error) {
+func (n *Nessus) StartScan(scanID int64) (string, error) {
 	if n.Verbose {
 		log.Println("Starting scan...")
 	}
@@ -563,7 +563,7 @@ func (n *Nessus) StartScan(scanID int) (string, error) {
 	return reply.UUID, nil
 }
 
-func (n *Nessus) PauseScan(scanID int) error {
+func (n *Nessus) PauseScan(scanID int64) error {
 	if n.Verbose {
 		log.Println("Pausing scan...")
 	}
@@ -572,7 +572,7 @@ func (n *Nessus) PauseScan(scanID int) error {
 	return err
 }
 
-func (n *Nessus) ResumeScan(scanID int) error {
+func (n *Nessus) ResumeScan(scanID int64) error {
 	if n.Verbose {
 		log.Println("Resume scan...")
 	}
@@ -581,7 +581,7 @@ func (n *Nessus) ResumeScan(scanID int) error {
 	return err
 }
 
-func (n *Nessus) StopScan(scanID int) error {
+func (n *Nessus) StopScan(scanID int64) error {
 	if n.Verbose {
 		log.Println("Stop scan...")
 	}
@@ -590,7 +590,7 @@ func (n *Nessus) StopScan(scanID int) error {
 	return err
 }
 
-func (n *Nessus) DeleteScan(scanID int) error {
+func (n *Nessus) DeleteScan(scanID int64) error {
 	if n.Verbose {
 		log.Println("Deleting scan...")
 	}
@@ -599,7 +599,7 @@ func (n *Nessus) DeleteScan(scanID int) error {
 	return err
 }
 
-func (n *Nessus) ScanDetails(scanID int) (*ScanDetailsResp, error) {
+func (n *Nessus) ScanDetails(scanID int64) (*ScanDetailsResp, error) {
 	if n.Verbose {
 		log.Println("Getting details about a scan...")
 	}
