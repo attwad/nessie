@@ -9,8 +9,6 @@ import (
 )
 
 func TestDoRequest(t *testing.T) {
-	// Increase covered lines.
-	debug = true
 	// Test structure to be serialized.
 	type payload struct {
 		A int `json:"a"`
@@ -53,7 +51,8 @@ func TestDoRequest(t *testing.T) {
 				t.Errorf("unexpected payload, got=%s, want=%s", body, tt.wantPayload)
 			}
 		}))
-		n, err := NewNessus(ts.URL, "", false)
+		n, err := NewInsecureNessus(ts.URL)
+		n.Verbose = true
 		if err != nil {
 			t.Errorf("could not create nessie instance: %v (%+v)", err, tt)
 			continue
