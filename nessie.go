@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -16,12 +15,6 @@ import (
 	"sync"
 )
 
-var debug bool
-
-func init() {
-	flag.BoolVar(&debug, "debug", false, "log the responses from nessus")
-}
-
 // Nessus implements most of the communication with Nessus.
 type Nessus struct {
 	// client is the HTTP client to use to issue requests to nessus.
@@ -29,11 +22,21 @@ type Nessus struct {
 	// authCookie is the login token returned by nessus upon successful login.
 	authCookie string
 	apiURL     string
+	// Verbose will log requests and responses amongst other helpful debugging things.
+	Verbose bool
 }
 
-// NewNessus will return a new Nessus initialized with a client matching the security parameters.
-// if caCertPath is empty, the host certificate roots will be used to check for the validity of the nessus server API certificate.
-func NewNessus(apiURL, caCertPath string, ignoreSSLCertsErrors bool) (*Nessus, error) {
+// NewNessus will return a new Nessus instance, if caCertPath is empty, the host certificate roots will be used to check for the validity of the nessus server API certificate.
+func NewNessus(apiURL, caCertPath string) (*Nessus, error) {
+	return newNessus(apiURL, caCertPath, false)
+}
+
+// NewInsecureNessus will return a nessus instance which does not check for the api certificate validyty, do not use in production environment.
+func NewInsecureNessus(apiURL string) (*Nessus, error) {
+	return newNessus(apiURL, "", true)
+}
+
+func newNessus(apiURL, caCertPath string, ignoreSSLCertsErrors bool) (*Nessus, error) {
 	var roots *x509.CertPool
 	if len(caCertPath) != 0 {
 		roots = x509.NewCertPool()
@@ -81,7 +84,7 @@ func (n *Nessus) doRequest(method string, resource string, js interface{}, wantS
 		req.Header.Add("X-Cookie", fmt.Sprintf("token=%s", n.authCookie))
 	}
 
-	if debug {
+	if n.Verbose {
 		db, err := httputil.DumpRequest(req, true)
 		if err != nil {
 			return nil, err
@@ -92,7 +95,7 @@ func (n *Nessus) doRequest(method string, resource string, js interface{}, wantS
 	if err != nil {
 		return nil, err
 	}
-	if debug {
+	if n.Verbose {
 		if body, err := httputil.DumpResponse(resp, true); err == nil {
 			log.Println(string(body))
 		}
@@ -116,7 +119,7 @@ func (n *Nessus) doRequest(method string, resource string, js interface{}, wantS
 
 // Login will log into nessus with the username and passwords given from the command line flags.
 func (n *Nessus) Login(username, password string) error {
-	if debug {
+	if n.Verbose {
 		log.Printf("Login into %s\n", n.apiURL)
 	}
 	data := loginRequest{
@@ -142,7 +145,7 @@ func (n *Nessus) Logout() error {
 		log.Println("Not logged in, nothing to do to logout...")
 		return nil
 	}
-	if debug {
+	if n.Verbose {
 		log.Println("Logout...")
 	}
 
@@ -155,7 +158,7 @@ func (n *Nessus) Logout() error {
 
 // Session will return the details for the current session.
 func (n *Nessus) Session() (Session, error) {
-	if debug {
+	if n.Verbose {
 		log.Printf("Getting details for current session...")
 	}
 
@@ -172,7 +175,7 @@ func (n *Nessus) Session() (Session, error) {
 
 // ServerProperties will return the current state of the nessus instance.
 func (n *Nessus) ServerProperties() (*ServerProperties, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Server properties...")
 	}
 
@@ -189,7 +192,7 @@ func (n *Nessus) ServerProperties() (*ServerProperties, error) {
 
 // ServerStatus will return the current status of the nessus instance.
 func (n *Nessus) ServerStatus() (*ServerStatus, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Server status...")
 	}
 
@@ -221,7 +224,7 @@ const (
 // CreateUser will register a new user with the nessus instance.
 // Name and email can be empty.
 func (n *Nessus) CreateUser(username, password, userType, permissions, name, email string) (*User, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Creating new user...")
 	}
 	data := createUserRequest{
@@ -250,7 +253,7 @@ func (n *Nessus) CreateUser(username, password, userType, permissions, name, ema
 
 // ListUsers will return the list of users on this nessus instance.
 func (n *Nessus) ListUsers() (*[]User, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Listing users...")
 	}
 
@@ -267,7 +270,7 @@ func (n *Nessus) ListUsers() (*[]User, error) {
 
 // DeleteUser will remove a user from this nessus instance.
 func (n *Nessus) DeleteUser(userID int) error {
-	if debug {
+	if n.Verbose {
 		log.Println("Deleting user...")
 	}
 
@@ -277,7 +280,7 @@ func (n *Nessus) DeleteUser(userID int) error {
 
 // SetUserPassword will change the password for the given user.
 func (n *Nessus) SetUserPassword(userID int, password string) error {
-	if debug {
+	if n.Verbose {
 		log.Println("Changing password of user...")
 	}
 	data := setUserPasswordRequest{
@@ -291,7 +294,7 @@ func (n *Nessus) SetUserPassword(userID int, password string) error {
 // EditUser will edit certain information about a user.
 // Any non empty parameter will be set.
 func (n *Nessus) EditUser(userID int, permissions, name, email string) (*User, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Editing user...")
 	}
 	data := editUserRequest{}
@@ -318,7 +321,7 @@ func (n *Nessus) EditUser(userID int, permissions, name, email string) (*User, e
 }
 
 func (n *Nessus) PluginFamilies() ([]PluginFamily, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Getting list of plugin families...")
 	}
 
@@ -334,7 +337,7 @@ func (n *Nessus) PluginFamilies() ([]PluginFamily, error) {
 }
 
 func (n *Nessus) FamilyDetails(ID int64) (*FamilyDetails, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Getting details of family...")
 	}
 
@@ -350,7 +353,7 @@ func (n *Nessus) FamilyDetails(ID int64) (*FamilyDetails, error) {
 }
 
 func (n *Nessus) PluginDetails(ID int64) (*PluginDetails, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Getting details plugin...")
 	}
 
@@ -366,7 +369,7 @@ func (n *Nessus) PluginDetails(ID int64) (*PluginDetails, error) {
 }
 
 func (n *Nessus) Scanners() ([]Scanner, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Getting scanners list...")
 	}
 
@@ -436,7 +439,7 @@ func (n *Nessus) AllPlugins() (chan PluginDetails, error) {
 }
 
 func (n *Nessus) Policies() ([]Policy, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Getting policies list...")
 	}
 
@@ -467,7 +470,7 @@ func (n *Nessus) NewScan(
 	scannerID int64,
 	launch string,
 	targets []string) (*Scan, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Creating a new scan...")
 	}
 
@@ -496,7 +499,7 @@ func (n *Nessus) NewScan(
 }
 
 func (n *Nessus) Scans() (*ListScansResponse, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Getting scans list...")
 	}
 
@@ -512,7 +515,7 @@ func (n *Nessus) Scans() (*ListScansResponse, error) {
 }
 
 func (n *Nessus) ScanTemplates() ([]Template, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Getting scans templates...")
 	}
 
@@ -528,7 +531,7 @@ func (n *Nessus) ScanTemplates() ([]Template, error) {
 }
 
 func (n *Nessus) PolicyTemplates() ([]Template, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Getting policy templates...")
 	}
 
@@ -545,7 +548,7 @@ func (n *Nessus) PolicyTemplates() ([]Template, error) {
 
 // StartScan starts the given scan and returns its UUID.
 func (n *Nessus) StartScan(scanID int) (string, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Starting scan...")
 	}
 
@@ -561,7 +564,7 @@ func (n *Nessus) StartScan(scanID int) (string, error) {
 }
 
 func (n *Nessus) PauseScan(scanID int) error {
-	if debug {
+	if n.Verbose {
 		log.Println("Pausing scan...")
 	}
 
@@ -570,7 +573,7 @@ func (n *Nessus) PauseScan(scanID int) error {
 }
 
 func (n *Nessus) ResumeScan(scanID int) error {
-	if debug {
+	if n.Verbose {
 		log.Println("Resume scan...")
 	}
 
@@ -579,7 +582,7 @@ func (n *Nessus) ResumeScan(scanID int) error {
 }
 
 func (n *Nessus) StopScan(scanID int) error {
-	if debug {
+	if n.Verbose {
 		log.Println("Stop scan...")
 	}
 
@@ -588,7 +591,7 @@ func (n *Nessus) StopScan(scanID int) error {
 }
 
 func (n *Nessus) DeleteScan(scanID int) error {
-	if debug {
+	if n.Verbose {
 		log.Println("Deleting scan...")
 	}
 
@@ -597,7 +600,7 @@ func (n *Nessus) DeleteScan(scanID int) error {
 }
 
 func (n *Nessus) ScanDetails(scanID int) (*ScanDetailsResp, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Getting details about a scan...")
 	}
 
@@ -613,7 +616,7 @@ func (n *Nessus) ScanDetails(scanID int) (*ScanDetailsResp, error) {
 }
 
 func (n *Nessus) Timezones() ([]TimeZone, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Getting list of timezones...")
 	}
 
@@ -629,7 +632,7 @@ func (n *Nessus) Timezones() ([]TimeZone, error) {
 }
 
 func (n *Nessus) Folders() ([]Folder, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Getting list of folders...")
 	}
 
@@ -645,7 +648,7 @@ func (n *Nessus) Folders() ([]Folder, error) {
 }
 
 func (n *Nessus) CreateFolder(name string) error {
-	if debug {
+	if n.Verbose {
 		log.Println("Creating folders...")
 	}
 
@@ -655,7 +658,7 @@ func (n *Nessus) CreateFolder(name string) error {
 }
 
 func (n *Nessus) EditFolder(folderID int64, newName string) error {
-	if debug {
+	if n.Verbose {
 		log.Println("Editing folders...")
 	}
 
@@ -665,7 +668,7 @@ func (n *Nessus) EditFolder(folderID int64, newName string) error {
 }
 
 func (n *Nessus) DeleteFolder(folderID int64) error {
-	if debug {
+	if n.Verbose {
 		log.Println("Deleting folders...")
 	}
 
@@ -684,7 +687,7 @@ const (
 // ExportsScan exports a scan to a File resource.
 // Call ExportStatus to get the status of the export and call Download() to download the actual file.
 func (n *Nessus) ExportScan(scanID int64, format string) (int64, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Exporting scan...")
 	}
 
@@ -702,7 +705,7 @@ func (n *Nessus) ExportScan(scanID int64, format string) (int64, error) {
 
 // ExportFinished returns whether the given scan export file has finished being prepared.
 func (n *Nessus) ExportFinished(scanID, exportID int64) (bool, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Getting export status...")
 	}
 
@@ -719,7 +722,7 @@ func (n *Nessus) ExportFinished(scanID, exportID int64) (bool, error) {
 
 // SaveExport will download the given export from nessus.
 func (n *Nessus) DownloadExport(scanID, exportID int64) ([]byte, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Downloading export file...")
 	}
 
@@ -737,7 +740,7 @@ func (n *Nessus) DownloadExport(scanID, exportID int64) ([]byte, error) {
 
 // TODO: Currently returns a 404... not exposed yet?
 func (n *Nessus) ListGroups() ([]Group, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Listing groups...")
 	}
 
@@ -754,7 +757,7 @@ func (n *Nessus) ListGroups() ([]Group, error) {
 
 // TODO: Currently returns a 404... not exposed yet?
 func (n *Nessus) CreateGroup(name string) (Group, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Creating a group...")
 	}
 
@@ -773,7 +776,7 @@ func (n *Nessus) CreateGroup(name string) (Group, error) {
 }
 
 func (n *Nessus) Permissions(objectType string, objectID int64) ([]Permission, error) {
-	if debug {
+	if n.Verbose {
 		log.Println("Creating a group...")
 	}
 
