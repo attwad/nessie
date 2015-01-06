@@ -1,6 +1,7 @@
 package nessie
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -73,5 +74,29 @@ func TestDoRequest(t *testing.T) {
 		if resp.StatusCode != tt.serverStatus {
 			t.Errorf("got status code=%d, wanted=%d", resp.StatusCode, tt.serverStatus)
 		}
+	}
+}
+
+func TestLogin(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(200)
+		w.Header().Set("Content-Type", "application/json")
+		j, err := json.Marshal(&loginResp{Token: "some token"})
+		if err != nil {
+			t.Fatalf("cannot serialize login response: %v", err)
+		}
+		w.Write(j)
+	}))
+	defer server.Close()
+	n, err := NewInsecureNessus(server.URL)
+	if err != nil {
+		t.Fatalf("cannot create nessus instance: %v", err)
+	}
+
+	if err := n.Login("username", "password"); err != nil {
+		t.Fatalf("got error during login: %v", err)
+	}
+	if got, want := n.authCookie, "some token"; got != want {
+		t.Fatalf("wrong auth cookie, got=%q, want=%q", got, want)
 	}
 }
