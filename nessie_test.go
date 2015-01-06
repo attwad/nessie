@@ -120,6 +120,30 @@ func TestMethods(t *testing.T) {
 			n.EditUser(42, Permissions128, "newname", "newmain@goo.fom")
 		}},
 		{[]PluginFamily{}, http.StatusOK, func(n *Nessus) { n.PluginFamilies() }},
+		{&FamilyDetails{}, http.StatusOK, func(n *Nessus) { n.FamilyDetails(42) }},
+		{&PluginDetails{}, http.StatusOK, func(n *Nessus) { n.PluginDetails(42) }},
+		{[]Scanner{}, http.StatusOK, func(n *Nessus) { n.Scanners() }},
+		{&listPoliciesResp{}, http.StatusOK, func(n *Nessus) { n.Policies() }},
+		{&Scan{}, http.StatusOK, func(n *Nessus) {
+			n.NewScan("editorUUID", "settingsName", 42, 43, 44, LaunchDaily, []string{"target1", "target2"})
+		}},
+		{&ListScansResponse{}, http.StatusOK, func(n *Nessus) { n.Scans() }},
+		{[]Template{}, http.StatusOK, func(n *Nessus) { n.ScanTemplates() }},
+		{[]Template{}, http.StatusOK, func(n *Nessus) { n.PolicyTemplates() }},
+		{"id", http.StatusOK, func(n *Nessus) { n.StartScan(42) }},
+		{nil, http.StatusOK, func(n *Nessus) { n.PauseScan(42) }},
+		{nil, http.StatusOK, func(n *Nessus) { n.ResumeScan(42) }},
+		{nil, http.StatusOK, func(n *Nessus) { n.StopScan(42) }},
+		{&ScanDetailsResp{}, http.StatusOK, func(n *Nessus) { n.ScanDetails(42) }},
+		{[]TimeZone{}, http.StatusOK, func(n *Nessus) { n.Timezones() }},
+		{[]Folder{}, http.StatusOK, func(n *Nessus) { n.Folders() }},
+		{nil, http.StatusOK, func(n *Nessus) { n.CreateFolder("name") }},
+		{nil, http.StatusOK, func(n *Nessus) { n.EditFolder(42, "newname") }},
+		{nil, http.StatusOK, func(n *Nessus) { n.DeleteFolder(42) }},
+		{42, http.StatusOK, func(n *Nessus) { n.ExportScan(42, ExportPDF) }},
+		{true, http.StatusOK, func(n *Nessus) { n.ExportFinished(42, 43) }},
+		{[]byte("raw export"), http.StatusOK, func(n *Nessus) { n.DownloadExport(42, 43) }},
+		{[]Permission{}, http.StatusOK, func(n *Nessus) { n.Permissions("scanner", 42) }},
 	}
 	for _, tt := range tests {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
