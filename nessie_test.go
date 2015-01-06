@@ -108,6 +108,7 @@ func TestMethods(t *testing.T) {
 		call       func(n *Nessus)
 	}{
 		{&Session{}, http.StatusOK, func(n *Nessus) { n.Session() }},
+		{&ServerProperties{}, http.StatusOK, func(n *Nessus) { n.ServerProperties() }},
 	}
 	for _, tt := range tests {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
