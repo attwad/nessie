@@ -100,3 +100,29 @@ func TestLogin(t *testing.T) {
 		t.Fatalf("wrong auth cookie, got=%q, want=%q", got, want)
 	}
 }
+
+func TestMethods(t *testing.T) {
+	var tests = []struct {
+		resp       interface{}
+		statusCode int
+		call       func(n *Nessus)
+	}{
+		{&Session{}, http.StatusOK, func(n *Nessus) { n.Session() }},
+	}
+	for _, tt := range tests {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(tt.statusCode)
+			j, err := json.Marshal(tt.resp)
+			if err != nil {
+				t.Fatalf("cannot serialize response: %v", err)
+			}
+			w.Write(j)
+		}))
+		defer server.Close()
+		n, err := NewInsecureNessus(server.URL)
+		if err != nil {
+			t.Fatalf("cannot create nessus instance: %v", err)
+		}
+		tt.call(n)
+	}
+}
