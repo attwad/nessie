@@ -119,6 +119,7 @@ func TestMethods(t *testing.T) {
 		{&User{}, http.StatusOK, func(n *Nessus) {
 			n.EditUser(42, Permissions128, "newname", "newmain@goo.fom")
 		}},
+		{[]PluginFamily{}, http.StatusOK, func(n *Nessus) { n.PluginFamilies() }},
 	}
 	for _, tt := range tests {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
