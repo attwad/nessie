@@ -109,21 +109,34 @@ func TestMethods(t *testing.T) {
 	}{
 		{&Session{}, http.StatusOK, func(n *Nessus) { n.Session() }},
 		{&ServerProperties{}, http.StatusOK, func(n *Nessus) { n.ServerProperties() }},
+		{&ServerStatus{}, http.StatusOK, func(n *Nessus) { n.ServerStatus() }},
+		{&User{}, http.StatusOK, func(n *Nessus) {
+			n.CreateUser("username", "pass", UserTypeLocal, Permissions32, "name", "email@foo.com")
+		}},
+		{&listUsersResp{}, http.StatusOK, func(n *Nessus) { n.ListUsers() }},
+		{nil, http.StatusOK, func(n *Nessus) { n.DeleteUser(42) }},
+		{nil, http.StatusOK, func(n *Nessus) { n.SetUserPassword(42, "newpass") }},
+		{&User{}, http.StatusOK, func(n *Nessus) {
+			n.EditUser(42, Permissions128, "newname", "newmain@goo.fom")
+		}},
 	}
 	for _, tt := range tests {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(tt.statusCode)
-			j, err := json.Marshal(tt.resp)
-			if err != nil {
-				t.Fatalf("cannot serialize response: %v", err)
+			if tt.resp != nil {
+				j, err := json.Marshal(tt.resp)
+				if err != nil {
+					t.Fatalf("cannot serialize response: %v", err)
+				}
+				w.Write(j)
 			}
-			w.Write(j)
 		}))
 		defer server.Close()
 		n, err := NewInsecureNessus(server.URL)
 		if err != nil {
 			t.Fatalf("cannot create nessus instance: %v", err)
 		}
+		n.Verbose = true
 		tt.call(n)
 	}
 }
