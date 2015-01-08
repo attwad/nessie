@@ -2,7 +2,7 @@ package nessie
 
 // Editor resources.
 
-// Templates are used to create scans or policies with predefined parameters.
+// Template is used to create scans or policies with predefined parameters.
 type Template struct {
 	// The uuid for the template.
 	UUID string `json:"uuid"`

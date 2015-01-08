@@ -684,7 +684,7 @@ const (
 	ExportDB     = "db"
 )
 
-// ExportsScan exports a scan to a File resource.
+// ExportScan exports a scan to a File resource.
 // Call ExportStatus to get the status of the export and call Download() to download the actual file.
 func (n *Nessus) ExportScan(scanID int64, format string) (int64, error) {
 	if n.Verbose {
@@ -720,7 +720,7 @@ func (n *Nessus) ExportFinished(scanID, exportID int64) (bool, error) {
 	return reply.Status == "ready", nil
 }
 
-// SaveExport will download the given export from nessus.
+// DownloadExport will download the given export from nessus.
 func (n *Nessus) DownloadExport(scanID, exportID int64) ([]byte, error) {
 	if n.Verbose {
 		log.Println("Downloading export file...")
