@@ -83,7 +83,7 @@ type Folder struct {
 type Group struct {
 	ID          int64  `json:"id"`
 	Name        string `json:"name"`
-	permissions int64  `json:"permissions"`
+	Permissions int64  `json:"permissions"`
 	UserCount   int64  `json:"user_count"`
 }
 
