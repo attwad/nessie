@@ -1,8 +1,8 @@
 package nessie
 
 import (
+	"crypto/tls"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -14,7 +14,6 @@ func TestDoRequest(t *testing.T) {
 	type payload struct {
 		A int `json:"a"`
 	}
-	authToken := "some token"
 	var tests = []struct {
 		method       string
 		resource     string
@@ -39,9 +38,6 @@ func TestDoRequest(t *testing.T) {
 	for _, tt := range tests {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(tt.serverStatus)
-			if r.Header.Get("X-Cookie") != fmt.Sprintf("token=%s", authToken) {
-				t.Errorf("invalid auth header, got=%s, want=%s", r.Header.Get("X-Cookie"), authToken)
-			}
 			body, err := ioutil.ReadAll(r.Body)
 			if err != nil {
 				t.Errorf("could not read request body: %v", err)
@@ -52,14 +48,17 @@ func TestDoRequest(t *testing.T) {
 				t.Errorf("unexpected payload, got=%s, want=%s", body, tt.wantPayload)
 			}
 		}))
-		n, err := NewInsecureNessus(ts.URL)
-		n.Verbose = true
-		if err != nil {
-			t.Errorf("could not create nessie instance: %v (%+v)", err, tt)
-			continue
+		n := &nessusImpl{
+			apiURL: ts.URL,
+			client: &http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: true,
+					},
+				},
+			},
 		}
-		// Increase covered lines.
-		n.authCookie = authToken
+		n.SetVerbose(true)
 		resp, err := n.doRequest(tt.method, tt.resource, tt.sentPayload, tt.wantStatus)
 		if tt.wantError {
 			if err == nil {
@@ -96,7 +95,7 @@ func TestLogin(t *testing.T) {
 	if err := n.Login("username", "password"); err != nil {
 		t.Fatalf("got error during login: %v", err)
 	}
-	if got, want := n.authCookie, "some token"; got != want {
+	if got, want := n.AuthCookie(), "some token"; got != want {
 		t.Fatalf("wrong auth cookie, got=%q, want=%q", got, want)
 	}
 }
@@ -105,46 +104,46 @@ func TestMethods(t *testing.T) {
 	var tests = []struct {
 		resp       interface{}
 		statusCode int
-		call       func(n *Nessus)
+		call       func(n Nessus)
 	}{
-		{&Session{}, http.StatusOK, func(n *Nessus) { n.Session() }},
-		{&ServerProperties{}, http.StatusOK, func(n *Nessus) { n.ServerProperties() }},
-		{&ServerStatus{}, http.StatusOK, func(n *Nessus) { n.ServerStatus() }},
-		{&User{}, http.StatusOK, func(n *Nessus) {
+		{&Session{}, http.StatusOK, func(n Nessus) { n.Session() }},
+		{&ServerProperties{}, http.StatusOK, func(n Nessus) { n.ServerProperties() }},
+		{&ServerStatus{}, http.StatusOK, func(n Nessus) { n.ServerStatus() }},
+		{&User{}, http.StatusOK, func(n Nessus) {
 			n.CreateUser("username", "pass", UserTypeLocal, Permissions32, "name", "email@foo.com")
 		}},
-		{&listUsersResp{}, http.StatusOK, func(n *Nessus) { n.ListUsers() }},
-		{nil, http.StatusOK, func(n *Nessus) { n.DeleteUser(42) }},
-		{nil, http.StatusOK, func(n *Nessus) { n.SetUserPassword(42, "newpass") }},
-		{&User{}, http.StatusOK, func(n *Nessus) {
+		{&listUsersResp{}, http.StatusOK, func(n Nessus) { n.ListUsers() }},
+		{nil, http.StatusOK, func(n Nessus) { n.DeleteUser(42) }},
+		{nil, http.StatusOK, func(n Nessus) { n.SetUserPassword(42, "newpass") }},
+		{&User{}, http.StatusOK, func(n Nessus) {
 			n.EditUser(42, Permissions128, "newname", "newmain@goo.fom")
 		}},
-		{[]PluginFamily{}, http.StatusOK, func(n *Nessus) { n.PluginFamilies() }},
-		{&FamilyDetails{}, http.StatusOK, func(n *Nessus) { n.FamilyDetails(42) }},
-		{&PluginDetails{}, http.StatusOK, func(n *Nessus) { n.PluginDetails(42) }},
-		{[]Scanner{}, http.StatusOK, func(n *Nessus) { n.Scanners() }},
-		{&listPoliciesResp{}, http.StatusOK, func(n *Nessus) { n.Policies() }},
-		{&Scan{}, http.StatusOK, func(n *Nessus) {
+		{[]PluginFamily{}, http.StatusOK, func(n Nessus) { n.PluginFamilies() }},
+		{&FamilyDetails{}, http.StatusOK, func(n Nessus) { n.FamilyDetails(42) }},
+		{&PluginDetails{}, http.StatusOK, func(n Nessus) { n.PluginDetails(42) }},
+		{[]Scanner{}, http.StatusOK, func(n Nessus) { n.Scanners() }},
+		{&listPoliciesResp{}, http.StatusOK, func(n Nessus) { n.Policies() }},
+		{&Scan{}, http.StatusOK, func(n Nessus) {
 			n.NewScan("editorUUID", "settingsName", 42, 43, 44, LaunchDaily, []string{"target1", "target2"})
 		}},
-		{&ListScansResponse{}, http.StatusOK, func(n *Nessus) { n.Scans() }},
-		{[]Template{}, http.StatusOK, func(n *Nessus) { n.ScanTemplates() }},
-		{[]Template{}, http.StatusOK, func(n *Nessus) { n.PolicyTemplates() }},
-		{"id", http.StatusOK, func(n *Nessus) { n.StartScan(42) }},
-		{nil, http.StatusOK, func(n *Nessus) { n.PauseScan(42) }},
-		{nil, http.StatusOK, func(n *Nessus) { n.ResumeScan(42) }},
-		{nil, http.StatusOK, func(n *Nessus) { n.StopScan(42) }},
-		{nil, http.StatusOK, func(n *Nessus) { n.DeleteScan(42) }},
-		{&ScanDetailsResp{}, http.StatusOK, func(n *Nessus) { n.ScanDetails(42) }},
-		{[]TimeZone{}, http.StatusOK, func(n *Nessus) { n.Timezones() }},
-		{[]Folder{}, http.StatusOK, func(n *Nessus) { n.Folders() }},
-		{nil, http.StatusOK, func(n *Nessus) { n.CreateFolder("name") }},
-		{nil, http.StatusOK, func(n *Nessus) { n.EditFolder(42, "newname") }},
-		{nil, http.StatusOK, func(n *Nessus) { n.DeleteFolder(42) }},
-		{42, http.StatusOK, func(n *Nessus) { n.ExportScan(42, ExportPDF) }},
-		{true, http.StatusOK, func(n *Nessus) { n.ExportFinished(42, 43) }},
-		{[]byte("raw export"), http.StatusOK, func(n *Nessus) { n.DownloadExport(42, 43) }},
-		{[]Permission{}, http.StatusOK, func(n *Nessus) { n.Permissions("scanner", 42) }},
+		{&ListScansResponse{}, http.StatusOK, func(n Nessus) { n.Scans() }},
+		{[]Template{}, http.StatusOK, func(n Nessus) { n.ScanTemplates() }},
+		{[]Template{}, http.StatusOK, func(n Nessus) { n.PolicyTemplates() }},
+		{"id", http.StatusOK, func(n Nessus) { n.StartScan(42) }},
+		{nil, http.StatusOK, func(n Nessus) { n.PauseScan(42) }},
+		{nil, http.StatusOK, func(n Nessus) { n.ResumeScan(42) }},
+		{nil, http.StatusOK, func(n Nessus) { n.StopScan(42) }},
+		{nil, http.StatusOK, func(n Nessus) { n.DeleteScan(42) }},
+		{&ScanDetailsResp{}, http.StatusOK, func(n Nessus) { n.ScanDetails(42) }},
+		{[]TimeZone{}, http.StatusOK, func(n Nessus) { n.Timezones() }},
+		{[]Folder{}, http.StatusOK, func(n Nessus) { n.Folders() }},
+		{nil, http.StatusOK, func(n Nessus) { n.CreateFolder("name") }},
+		{nil, http.StatusOK, func(n Nessus) { n.EditFolder(42, "newname") }},
+		{nil, http.StatusOK, func(n Nessus) { n.DeleteFolder(42) }},
+		{42, http.StatusOK, func(n Nessus) { n.ExportScan(42, ExportPDF) }},
+		{true, http.StatusOK, func(n Nessus) { n.ExportFinished(42, 43) }},
+		{[]byte("raw export"), http.StatusOK, func(n Nessus) { n.DownloadExport(42, 43) }},
+		{[]Permission{}, http.StatusOK, func(n Nessus) { n.Permissions("scanner", 42) }},
 	}
 	for _, tt := range tests {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -162,7 +161,7 @@ func TestMethods(t *testing.T) {
 		if err != nil {
 			t.Fatalf("cannot create nessus instance: %v", err)
 		}
-		n.Verbose = true
+		n.SetVerbose(true)
 		tt.call(n)
 	}
 }
