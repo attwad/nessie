@@ -20,6 +20,7 @@ type Nessus interface {
 	SetVerbose(bool)
 	AuthCookie() string
 	Login(username, password string) error
+	Logout() error
 	Session() (Session, error)
 
 	ServerProperties() (*ServerProperties, error)
