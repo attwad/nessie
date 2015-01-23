@@ -35,6 +35,7 @@ type Nessus interface {
 	PluginFamilies() ([]PluginFamily, error)
 	FamilyDetails(ID int64) (*FamilyDetails, error)
 	PluginDetails(ID int64) (*PluginDetails, error)
+	AllPlugins() (chan PluginDetails, error)
 
 	Scanners() ([]Scanner, error)
 	Policies() ([]Policy, error)
