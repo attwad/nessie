@@ -188,6 +188,7 @@ func (n *nessusImpl) Login(username, password string) error {
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 	reply := &loginResp{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return err
@@ -223,6 +224,7 @@ func (n *nessusImpl) Session() (Session, error) {
 	if err != nil {
 		return Session{}, err
 	}
+	defer resp.Body.Close()
 	var reply Session
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return Session{}, err
@@ -240,6 +242,7 @@ func (n *nessusImpl) ServerProperties() (*ServerProperties, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	reply := &ServerProperties{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
@@ -257,6 +260,7 @@ func (n *nessusImpl) ServerStatus() (*ServerStatus, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	reply := &ServerStatus{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
@@ -301,6 +305,7 @@ func (n *nessusImpl) CreateUser(username, password, userType, permissions, name,
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	reply := &User{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
@@ -318,6 +323,7 @@ func (n *nessusImpl) ListUsers() ([]User, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	reply := &listUsersResp{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
@@ -370,6 +376,7 @@ func (n *nessusImpl) EditUser(userID int, permissions, name, email string) (*Use
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	reply := &User{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
@@ -386,6 +393,7 @@ func (n *nessusImpl) PluginFamilies() ([]PluginFamily, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var reply []PluginFamily
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
@@ -402,6 +410,7 @@ func (n *nessusImpl) FamilyDetails(ID int64) (*FamilyDetails, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	reply := &FamilyDetails{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
@@ -418,6 +427,7 @@ func (n *nessusImpl) PluginDetails(ID int64) (*PluginDetails, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	reply := &PluginDetails{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
@@ -434,6 +444,7 @@ func (n *nessusImpl) Scanners() ([]Scanner, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var reply []Scanner
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
@@ -443,7 +454,7 @@ func (n *nessusImpl) Scanners() ([]Scanner, error) {
 
 // AllPlugin wil hammer nessus asking for details of every plugins available and feeding them in
 // the returned channel.
-// Gettign all the plugins is slow (usually takes a few minutes on a decent machine).
+// Getting all the plugins is slow (usually takes a few minutes on a decent machine).
 func (n *nessusImpl) AllPlugins() (chan PluginDetails, error) {
 	plugChan := make(chan PluginDetails, 20)
 
@@ -454,6 +465,7 @@ func (n *nessusImpl) AllPlugins() (chan PluginDetails, error) {
 	idChan := make(chan int64, 20)
 	var wgf sync.WaitGroup
 	var wgp sync.WaitGroup
+	// Launch a goroutine per family to get all the plugins of those families.
 	for _, family := range families {
 		wgf.Add(1)
 		go func(famID int64) {
@@ -468,27 +480,28 @@ func (n *nessusImpl) AllPlugins() (chan PluginDetails, error) {
 			}
 		}(family.ID)
 	}
-	// Launch our worker getting individual plugin details.
-	go func() {
-		for {
-			id, more := <-idChan
-			if !more {
-				break
-			}
-			plugin, err := n.PluginDetails(id)
-			if err != nil {
+	// Launch our workers getting individual plugin details.
+	for i := 0; i < 10; i++ {
+		go func() {
+			for id := range idChan {
+				plugin, err := n.PluginDetails(id)
+				if err != nil {
+					wgp.Done()
+					continue
+				}
+				plugChan <- *plugin
 				wgp.Done()
-				continue
 			}
-			plugChan <- *plugin
-			wgp.Done()
-		}
-	}()
+		}()
+	}
 
 	go func() {
 		wgf.Wait()
-		wgp.Wait()
+		// Once we finished adding all the plugin IDs, we can close the channel.
 		close(idChan)
+		// Once all the plugins have been returned, we can close the plugin channel
+		// to let the receiver know.
+		wgp.Wait()
 		close(plugChan)
 	}()
 
@@ -504,6 +517,7 @@ func (n *nessusImpl) Policies() ([]Policy, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var reply listPoliciesResp
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
@@ -548,6 +562,7 @@ func (n *nessusImpl) NewScan(
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	reply := &Scan{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
@@ -564,6 +579,7 @@ func (n *nessusImpl) Scans() (*ListScansResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	reply := &ListScansResponse{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
@@ -580,6 +596,7 @@ func (n *nessusImpl) ScanTemplates() ([]Template, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	reply := &listTemplatesResp{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
@@ -596,6 +613,7 @@ func (n *nessusImpl) PolicyTemplates() ([]Template, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	reply := &listTemplatesResp{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
@@ -613,6 +631,7 @@ func (n *nessusImpl) StartScan(scanID int64) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer resp.Body.Close()
 	reply := &startScanResp{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return "", err
@@ -665,6 +684,7 @@ func (n *nessusImpl) ScanDetails(scanID int64) (*ScanDetailsResp, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	reply := &ScanDetailsResp{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
@@ -681,6 +701,7 @@ func (n *nessusImpl) Timezones() ([]TimeZone, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	reply := &tzResp{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
@@ -697,6 +718,7 @@ func (n *nessusImpl) Folders() ([]Folder, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	reply := &listFoldersResp{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
@@ -753,6 +775,7 @@ func (n *nessusImpl) ExportScan(scanID int64, format string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+	defer resp.Body.Close()
 	reply := &exportScanResp{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return 0, err
@@ -770,6 +793,7 @@ func (n *nessusImpl) ExportFinished(scanID, exportID int64) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	defer resp.Body.Close()
 	reply := &exportStatusResp{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return false, err
@@ -805,6 +829,7 @@ func (n *nessusImpl) ListGroups() ([]Group, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	reply := &listGroupsResp{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
@@ -825,6 +850,7 @@ func (n *nessusImpl) CreateGroup(name string) (Group, error) {
 	if err != nil {
 		return Group{}, err
 	}
+	defer resp.Body.Close()
 	var reply Group
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return Group{}, err
@@ -841,6 +867,7 @@ func (n *nessusImpl) Permissions(objectType string, objectID int64) ([]Permissio
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	var reply []Permission
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
