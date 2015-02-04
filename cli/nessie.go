@@ -32,17 +32,6 @@ func main() {
 	log.Println("Logged-in")
 	defer nessus.Logout()
 
-	c, err := nessus.AllPlugins()
-	if err != nil {
-		panic(err)
-	}
-	i := 0
-	for p := range c {
-		i++
-		log.Println(i, p.ID)
-	}
-	return
-
 	var scanID int64 = 13
 	// We only care about the last scan, so no use for the scan UUID here.
 	if _, err = nessus.StartScan(scanID); err != nil {
