@@ -80,7 +80,7 @@ func NewNessus(apiURL, caCertPath string) (Nessus, error) {
 	return newNessus(apiURL, caCertPath, false)
 }
 
-// NewInsecureNessus will return a nessus instance which does not check for the api certificate validyty, do not use in production environment.
+// NewInsecureNessus will return a nessus instance which does not check for the api certificate validity, do not use in production environment.
 func NewInsecureNessus(apiURL string) (Nessus, error) {
 	return newNessus(apiURL, "", true)
 }
