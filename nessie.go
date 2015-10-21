@@ -394,11 +394,11 @@ func (n *nessusImpl) PluginFamilies() ([]PluginFamily, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	var reply []PluginFamily
+	var reply PluginFamilies
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
 	}
-	return reply, nil
+	return reply.Families, nil
 }
 
 func (n *nessusImpl) FamilyDetails(ID int64) (*FamilyDetails, error) {
