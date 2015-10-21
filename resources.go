@@ -110,6 +110,10 @@ type PluginFamily struct {
 	Count int64  `json:"count"`
 }
 
+type PluginFamilies struct {
+	Families []PluginFamily  `json:"families"`
+}
+
 type Plugin struct {
 	ID   int64  `json:"id"`
 	Name string `json:"name"`
