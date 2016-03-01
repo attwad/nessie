@@ -2,17 +2,21 @@ package nessie
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
 	"sync"
+	"time"
 )
 
 // Nessus exposes the resources offered via the Tenable Nessus RESTful API.
@@ -77,16 +81,28 @@ type nessusImpl struct {
 
 // NewNessus will return a new Nessus instance, if caCertPath is empty, the host certificate roots will be used to check for the validity of the nessus server API certificate.
 func NewNessus(apiURL, caCertPath string) (Nessus, error) {
-	return newNessus(apiURL, caCertPath, false)
+	return newNessus(apiURL, caCertPath, false, "")
 }
 
 // NewInsecureNessus will return a nessus instance which does not check for the api certificate validity, do not use in production environment.
 func NewInsecureNessus(apiURL string) (Nessus, error) {
-	return newNessus(apiURL, "", true)
+	return newNessus(apiURL, "", true, "")
 }
 
-func newNessus(apiURL, caCertPath string, ignoreSSLCertsErrors bool) (Nessus, error) {
-	var roots *x509.CertPool
+// NewFingerprintedNessus will return a nessus instance which verifies the api certificate by its SHA256 fingerprint (on the RawSubjectPublicKeyInfo and base64 encoded), which will by design enable InsecureSkipVerify.
+func NewFingerprintedNessus(apiURL string, certFingerprint string) (Nessus, error) {
+	return newNessus(apiURL, "", true, certFingerprint)
+}
+
+func newNessus(apiURL, caCertPath string, ignoreSSLCertsErrors bool, certFingerprint string) (Nessus, error) {
+	var (
+		dialTLS func(network, addr string) (net.Conn, error)
+		roots   *x509.CertPool
+	)
+	config := &tls.Config{
+		InsecureSkipVerify: ignoreSSLCertsErrors,
+		RootCAs:            roots,
+	}
 	if len(caCertPath) != 0 {
 		roots = x509.NewCertPool()
 		rootPEM, err := ioutil.ReadFile(caCertPath)
@@ -97,18 +113,50 @@ func newNessus(apiURL, caCertPath string, ignoreSSLCertsErrors bool) (Nessus, er
 		if !ok {
 			return nil, fmt.Errorf("could not append certs from PEM %s", caCertPath)
 		}
+	} else if len(certFingerprint) != 0 {
+		dialTLS = createDialTLSFuncToVerifyFingerprint(certFingerprint, config)
 	}
 	return &nessusImpl{
 		apiURL: apiURL,
 		client: &http.Client{
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: ignoreSSLCertsErrors,
-					RootCAs:            roots,
-				},
+				TLSClientConfig: config,
+				DialTLS:         dialTLS,
 			},
 		},
 	}, nil
+}
+
+func sha256Fingerprint(data []byte) string {
+	h := sha256.New()
+	h.Write(data)
+	return base64.StdEncoding.EncodeToString(h.Sum(nil))
+}
+
+func createDialTLSFuncToVerifyFingerprint(certFingerprint string, config *tls.Config) func(network, addr string) (net.Conn, error) {
+	return func(network, addr string) (net.Conn, error) {
+		conn, err := tls.Dial(network, addr, config)
+		if err != nil {
+			return nil, err
+		}
+		state := conn.ConnectionState()
+		for _, cert := range state.PeerCertificates {
+			if certFingerprint == sha256Fingerprint(cert.RawSubjectPublicKeyInfo) {
+				now := time.Now()
+				if now.Before(cert.NotBefore) {
+					conn.Close()
+					return nil, fmt.Errorf("Server certificate is only valid from %v", cert.NotBefore)
+				}
+				if now.After(cert.NotAfter) {
+					conn.Close()
+					return nil, fmt.Errorf("Server certificate expired on %v", cert.NotAfter)
+				}
+				return conn, nil
+			}
+		}
+		conn.Close()
+		return nil, fmt.Errorf("No server certificate with fingerprint %v was found.", certFingerprint)
+	}
 }
 
 func (n *nessusImpl) SetVerbose(verbosity bool) {
