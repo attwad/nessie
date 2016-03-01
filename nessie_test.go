@@ -226,7 +226,7 @@ func TestCreateDialTLSFuncToVerifyFingerprint(t *testing.T) {
 			t.Fatalf("failed to create x509 key pair: %v", err)
 		}
 		srvConfig := &tls.Config{Certificates: []tls.Certificate{srvKeypair}}
-		srvListener, err := tls.Listen("tcp", "[::1]:0", srvConfig)
+		srvListener, err := tls.Listen("tcp", ":0", srvConfig)
 		if err != nil {
 			t.Fatalf("cannot listen: %v", err)
 			return
