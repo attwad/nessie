@@ -1,12 +1,19 @@
 package nessie
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
+	"encoding/pem"
 	"io/ioutil"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestDoRequest(t *testing.T) {
@@ -163,5 +170,88 @@ func TestMethods(t *testing.T) {
 		}
 		n.SetVerbose(true)
 		tt.call(n)
+	}
+}
+
+func TestSha256Fingerprint(t *testing.T) {
+	want := "AzuD2SQxVI4TQkkDwjWpkir1bdNNU8m3KzfPFYSJIT4="
+	got := sha256Fingerprint([]byte("abc123!"))
+	if got != want {
+		t.Errorf("fingerprint calculation failed, got=%v, want=%v", got, want)
+	}
+}
+
+func generateCert(validNotBefore time.Time, validNotAfter time.Time) (*x509.Certificate, tls.Certificate, error) {
+	privKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return nil, tls.Certificate{}, err
+	}
+	template := x509.Certificate{
+		BasicConstraintsValid: true,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		NotBefore:             validNotBefore,
+		NotAfter:              validNotAfter,
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{Organization: []string{"Example Inc"}},
+	}
+	certDer, err := x509.CreateCertificate(rand.Reader, &template, &template, &privKey.PublicKey, privKey)
+	if err != nil {
+		return nil, tls.Certificate{}, err
+	}
+	certX509, err := x509.ParseCertificate(certDer)
+	if err != nil {
+		return nil, tls.Certificate{}, err
+	}
+	keypair, err := tls.X509KeyPair(
+		pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certDer}),
+		pem.EncodeToMemory(&pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privKey)}))
+	return certX509, keypair, err
+}
+
+func TestCreateDialTLSFuncToVerifyFingerprint(t *testing.T) {
+	var tests = []struct {
+		fingerprintSuffix string
+		validNotBefore    time.Time
+		validNotAfter     time.Time
+		wantError         bool
+	}{
+		{"", time.Now().Truncate(1 * time.Hour), time.Now().Add(1 * time.Hour), false},
+		{"a", time.Now().Truncate(1 * time.Hour), time.Now().Add(1 * time.Hour), true},
+		{"", time.Now().Add(1 * time.Hour), time.Now().Add(2 * time.Hour), true},
+	}
+	for _, tt := range tests {
+		srvCertX509, srvKeypair, err := generateCert(tt.validNotBefore, tt.validNotAfter)
+		if err != nil {
+			t.Fatalf("failed to create x509 key pair: %v", err)
+		}
+		srvConfig := &tls.Config{Certificates: []tls.Certificate{srvKeypair}}
+		srvListener, err := tls.Listen("tcp", "127.0.0.1:0", srvConfig)
+		if err != nil {
+			t.Fatalf("cannot listen: %v", err)
+			return
+		}
+		go http.Serve(srvListener, http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {}))
+		cConfig := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		wantFingerprint := sha256Fingerprint(srvCertX509.RawSubjectPublicKeyInfo) + tt.fingerprintSuffix
+		client := &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: cConfig,
+				DialTLS:         createDialTLSFuncToVerifyFingerprint(wantFingerprint, cConfig),
+			},
+		}
+		_, err = client.Get("https://" + srvListener.Addr().String())
+		if tt.wantError {
+			if err == nil {
+				t.Errorf("got no error, expected one (%+v)", tt)
+			}
+			continue
+		}
+		if err != nil {
+			t.Errorf("error during fingerprint verification: %v (%+v)", err, tt)
+			continue
+		}
 	}
 }
