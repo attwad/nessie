@@ -81,20 +81,20 @@ type nessusImpl struct {
 
 // NewNessus will return a new Nessus instance, if caCertPath is empty, the host certificate roots will be used to check for the validity of the nessus server API certificate.
 func NewNessus(apiURL, caCertPath string) (Nessus, error) {
-	return newNessus(apiURL, caCertPath, false, "")
+	return newNessus(apiURL, caCertPath, false, false, "")
 }
 
 // NewInsecureNessus will return a nessus instance which does not check for the api certificate validity, do not use in production environment.
 func NewInsecureNessus(apiURL string) (Nessus, error) {
-	return newNessus(apiURL, "", true, "")
+	return newNessus(apiURL, "", true, false, "")
 }
 
 // NewFingerprintedNessus will return a nessus instance which verifies the api certificate by its SHA256 fingerprint (on the RawSubjectPublicKeyInfo and base64 encoded), which will by design enable InsecureSkipVerify.
 func NewFingerprintedNessus(apiURL string, certFingerprint string) (Nessus, error) {
-	return newNessus(apiURL, "", true, certFingerprint)
+	return newNessus(apiURL, "", true, true, certFingerprint)
 }
 
-func newNessus(apiURL, caCertPath string, ignoreSSLCertsErrors bool, certFingerprint string) (Nessus, error) {
+func newNessus(apiURL, caCertPath string, ignoreSSLCertsErrors bool, verifyCertFingerprint bool, certFingerprint string) (Nessus, error) {
 	var (
 		dialTLS func(network, addr string) (net.Conn, error)
 		roots   *x509.CertPool
@@ -113,7 +113,10 @@ func newNessus(apiURL, caCertPath string, ignoreSSLCertsErrors bool, certFingerp
 		if !ok {
 			return nil, fmt.Errorf("could not append certs from PEM %s", caCertPath)
 		}
-	} else if len(certFingerprint) != 0 {
+	} else if verifyCertFingerprint == true {
+		if len(certFingerprint) == 0 {
+			return nil, fmt.Errorf("fingerprint verification enabled, fingerprint must not be empty")
+		}
 		dialTLS = createDialTLSFuncToVerifyFingerprint(certFingerprint, config)
 	}
 	return &nessusImpl{
