@@ -209,16 +209,37 @@ func generateCert(validNotBefore time.Time, validNotAfter time.Time) (*x509.Cert
 	return certX509, keypair, err
 }
 
+// An empty fingerprint would allow to create a nessus instance without any verification.
+func TestNewFingerprintedNessus(t *testing.T) {
+	_, err := NewFingerprintedNessus("https://192.0.2.1", "")
+	if err == nil {
+		t.Fatalf("should not accept empty fingerprint: %v", err)
+	}
+	_, err = NewFingerprintedNessus("https://192.0.2.1", "a")
+	if err != nil {
+		t.Fatalf("should accept a non-empty fingerprint: %v", err)
+	}
+}
+
 func TestCreateDialTLSFuncToVerifyFingerprint(t *testing.T) {
 	var tests = []struct {
-		fingerprintSuffix string
-		validNotBefore    time.Time
-		validNotAfter     time.Time
-		wantError         bool
+		fingerprint    func([]byte) string
+		validNotBefore time.Time
+		validNotAfter  time.Time
+		wantError      bool
 	}{
-		{"", time.Now().Truncate(1 * time.Hour), time.Now().Add(1 * time.Hour), false},
-		{"a", time.Now().Truncate(1 * time.Hour), time.Now().Add(1 * time.Hour), true},
-		{"", time.Now().Add(1 * time.Hour), time.Now().Add(2 * time.Hour), true},
+		// Correct fingerprint, should succeed.
+		{func(cert []byte) string { return sha256Fingerprint(cert) }, time.Now().Truncate(1 * time.Hour), time.Now().Add(1 * time.Hour), false},
+		// Correct fingerprint, cert not yet valid, should fail.
+		{func(cert []byte) string { return sha256Fingerprint(cert) }, time.Now().Add(1 * time.Hour), time.Now().Add(2 * time.Hour), true},
+		// Correct fingerprint, cert not valid anymore, should fail.
+		{func(cert []byte) string { return sha256Fingerprint(cert) }, time.Now().Truncate(2 * time.Hour), time.Now().Truncate(1 * time.Hour), true},
+		// No fingerprint given (empty string), should fail.
+		{func(_ []byte) string { return "" }, time.Now().Truncate(1 * time.Hour), time.Now().Add(1 * time.Hour), true},
+		// Wrong fingerprint given, should fail.
+		{func(_ []byte) string { return "TW1NeU5tSTBObUkyT0dabVl6WTRabVk1T1dJME5UTmpNV1E=" }, time.Now().Truncate(1 * time.Hour), time.Now().Add(1 * time.Hour), true},
+		// Wrong fingerprint given, should fail.
+		{func(_ []byte) string { return "x" }, time.Now().Truncate(1 * time.Hour), time.Now().Add(1 * time.Hour), true},
 	}
 	for _, tt := range tests {
 		srvCertX509, srvKeypair, err := generateCert(tt.validNotBefore, tt.validNotAfter)
@@ -235,7 +256,7 @@ func TestCreateDialTLSFuncToVerifyFingerprint(t *testing.T) {
 		cConfig := &tls.Config{
 			InsecureSkipVerify: true,
 		}
-		wantFingerprint := sha256Fingerprint(srvCertX509.RawSubjectPublicKeyInfo) + tt.fingerprintSuffix
+		wantFingerprint := tt.fingerprint(srvCertX509.RawSubjectPublicKeyInfo)
 		client := &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: cConfig,
