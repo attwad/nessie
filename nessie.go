@@ -142,22 +142,20 @@ func createDialTLSFuncToVerifyFingerprint(certFingerprint string, config *tls.Co
 		if err != nil {
 			return nil, err
 		}
+		defer conn.Close()
 		state := conn.ConnectionState()
 		for _, cert := range state.PeerCertificates {
 			if certFingerprint == sha256Fingerprint(cert.RawSubjectPublicKeyInfo) {
 				now := time.Now()
 				if now.Before(cert.NotBefore) {
-					conn.Close()
 					return nil, fmt.Errorf("Server certificate is only valid from %v", cert.NotBefore)
 				}
 				if now.After(cert.NotAfter) {
-					conn.Close()
 					return nil, fmt.Errorf("Server certificate expired on %v", cert.NotAfter)
 				}
 				return conn, nil
 			}
 		}
-		conn.Close()
 		return nil, fmt.Errorf("No server certificate with fingerprint %v was found.", certFingerprint)
 	}
 }
