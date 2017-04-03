@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-var apiURL, username, password string
+var apiURL, username, password, fingerprints string
 
 func init() {
 	flag.StringVar(&apiURL, "api_url", "", "")
