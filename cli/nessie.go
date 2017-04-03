@@ -10,17 +10,24 @@ import (
 	"time"
 )
 
-var apiURL, username, password string
+var apiURL, username, password, fingerprints string
 
 func init() {
 	flag.StringVar(&apiURL, "api_url", "", "")
 	flag.StringVar(&username, "username", "", "Username to login with, in production read that from a file, do not set from the command line or it will end up in your history.")
 	flag.StringVar(&password, "password", "", "Password that matches the provided username, in production read that from a file, do not set from the command line or it will end up in your history.")
+	flag.StringVar(&fingerprints, "fingerprints", "", "Comma-separated list of SPKI Fingerprints for the Nessus server using SHA-256 encoded in base64.")
 	flag.Parse()
 }
 
 func main() {
-	nessus, err := nessie.NewInsecureNessus(apiURL)
+	var err error
+	var nessus nessie.Nessus
+	if len(fingerprints) > 0 {
+		nessus, err = nessie.NewFingerprintedNessus(apiURL, strings.Split(fingerprints, ","))
+	} else {
+		nessus, err = nessie.NewInsecureNessus(apiURL)
+	}
 	if err != nil {
 		panic(err)
 	}

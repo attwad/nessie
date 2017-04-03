@@ -1,3 +1,4 @@
+// Package nessie implements a client for the Tenable Nessus 6 API.
 package nessie
 
 import (
@@ -16,7 +17,6 @@ import (
 	"net/url"
 	"strings"
 	"sync"
-	"time"
 )
 
 // Nessus exposes the resources offered via the Tenable Nessus RESTful API.
@@ -81,20 +81,20 @@ type nessusImpl struct {
 
 // NewNessus will return a new Nessus instance, if caCertPath is empty, the host certificate roots will be used to check for the validity of the nessus server API certificate.
 func NewNessus(apiURL, caCertPath string) (Nessus, error) {
-	return newNessus(apiURL, caCertPath, false, false, "")
+	return newNessus(apiURL, caCertPath, false, false, nil)
 }
 
 // NewInsecureNessus will return a nessus instance which does not check for the api certificate validity, do not use in production environment.
 func NewInsecureNessus(apiURL string) (Nessus, error) {
-	return newNessus(apiURL, "", true, false, "")
+	return newNessus(apiURL, "", true, false, nil)
 }
 
-// NewFingerprintedNessus will return a nessus instance which verifies the api certificate by its SHA256 fingerprint (on the RawSubjectPublicKeyInfo and base64 encoded), which will by design enable InsecureSkipVerify.
-func NewFingerprintedNessus(apiURL string, certFingerprint string) (Nessus, error) {
-	return newNessus(apiURL, "", true, true, certFingerprint)
+// NewFingerprintedNessus will return a nessus instance which verifies the api server's certificate by its SHA256 fingerprint (on the RawSubjectPublicKeyInfo and base64 encoded) against a whitelist of good certFingerprints. Fingerprint verification will enable InsecureSkipVerify.
+func NewFingerprintedNessus(apiURL string, certFingerprints []string) (Nessus, error) {
+	return newNessus(apiURL, "", true, true, certFingerprints)
 }
 
-func newNessus(apiURL, caCertPath string, ignoreSSLCertsErrors bool, verifyCertFingerprint bool, certFingerprint string) (Nessus, error) {
+func newNessus(apiURL, caCertPath string, ignoreSSLCertsErrors bool, verifyCertFingerprint bool, certFingerprints []string) (Nessus, error) {
 	var (
 		dialTLS func(network, addr string) (net.Conn, error)
 		roots   *x509.CertPool
@@ -114,10 +114,10 @@ func newNessus(apiURL, caCertPath string, ignoreSSLCertsErrors bool, verifyCertF
 			return nil, fmt.Errorf("could not append certs from PEM %s", caCertPath)
 		}
 	} else if verifyCertFingerprint == true {
-		if len(certFingerprint) == 0 {
+		if len(certFingerprints) == 0 {
 			return nil, fmt.Errorf("fingerprint verification enabled, fingerprint must not be empty")
 		}
-		dialTLS = createDialTLSFuncToVerifyFingerprint(certFingerprint, config)
+		dialTLS = createDialTLSFuncToVerifyFingerprint(certFingerprints, config)
 	}
 	return &nessusImpl{
 		apiURL: apiURL,
@@ -136,29 +136,22 @@ func sha256Fingerprint(data []byte) string {
 	return base64.StdEncoding.EncodeToString(h.Sum(nil))
 }
 
-func createDialTLSFuncToVerifyFingerprint(certFingerprint string, config *tls.Config) func(network, addr string) (net.Conn, error) {
+func createDialTLSFuncToVerifyFingerprint(certFingerprints []string, config *tls.Config) func(network, addr string) (net.Conn, error) {
 	return func(network, addr string) (net.Conn, error) {
 		conn, err := tls.Dial(network, addr, config)
 		if err != nil {
 			return nil, err
 		}
 		state := conn.ConnectionState()
-		for _, cert := range state.PeerCertificates {
-			if certFingerprint == sha256Fingerprint(cert.RawSubjectPublicKeyInfo) {
-				now := time.Now()
-				if now.Before(cert.NotBefore) {
-					conn.Close()
-					return nil, fmt.Errorf("Server certificate is only valid from %v", cert.NotBefore)
-				}
-				if now.After(cert.NotAfter) {
-					conn.Close()
-					return nil, fmt.Errorf("Server certificate expired on %v", cert.NotAfter)
-				}
+		// Only check the first cert in the chain. The TLS server must send its cert first (RFC5246), and this first cert is authenticated with a check for proof of private key possesion.
+		peerFingerprint := sha256Fingerprint(state.PeerCertificates[0].RawSubjectPublicKeyInfo)
+		for _, fingerprint := range certFingerprints {
+			if peerFingerprint == fingerprint {
 				return conn, nil
 			}
 		}
 		conn.Close()
-		return nil, fmt.Errorf("No server certificate with fingerprint %v was found.", certFingerprint)
+		return nil, fmt.Errorf("no server certificate with fingerprints %v was found", certFingerprints)
 	}
 }
 
