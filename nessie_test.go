@@ -211,11 +211,11 @@ func generateCert(validNotBefore time.Time, validNotAfter time.Time) (*x509.Cert
 
 // An empty fingerprint would allow to create a nessus instance without any verification.
 func TestNewFingerprintedNessus(t *testing.T) {
-	_, err := NewFingerprintedNessus("https://192.0.2.1", "")
+	_, err := NewFingerprintedNessus("https://192.0.2.1", []string{})
 	if err == nil {
 		t.Fatalf("should not accept empty fingerprint: %v", err)
 	}
-	_, err = NewFingerprintedNessus("https://192.0.2.1", "a")
+	_, err = NewFingerprintedNessus("https://192.0.2.1", []string{"a"})
 	if err != nil {
 		t.Fatalf("should accept a non-empty fingerprint: %v", err)
 	}
@@ -230,10 +230,10 @@ func TestCreateDialTLSFuncToVerifyFingerprint(t *testing.T) {
 	}{
 		// Correct fingerprint, should succeed.
 		{func(cert []byte) string { return sha256Fingerprint(cert) }, time.Now().Truncate(1 * time.Hour), time.Now().Add(1 * time.Hour), false},
-		// Correct fingerprint, cert not yet valid, should fail.
-		{func(cert []byte) string { return sha256Fingerprint(cert) }, time.Now().Add(1 * time.Hour), time.Now().Add(2 * time.Hour), true},
-		// Correct fingerprint, cert not valid anymore, should fail.
-		{func(cert []byte) string { return sha256Fingerprint(cert) }, time.Now().Truncate(2 * time.Hour), time.Now().Truncate(1 * time.Hour), true},
+		// Correct fingerprint, cert not yet valid, should succeed.
+		{func(cert []byte) string { return sha256Fingerprint(cert) }, time.Now().Add(1 * time.Hour), time.Now().Add(2 * time.Hour), false},
+		// Correct fingerprint, cert not valid anymore, should succeed.
+		{func(cert []byte) string { return sha256Fingerprint(cert) }, time.Now().Truncate(2 * time.Hour), time.Now().Truncate(1 * time.Hour), false},
 		// No fingerprint given (empty string), should fail.
 		{func(_ []byte) string { return "" }, time.Now().Truncate(1 * time.Hour), time.Now().Add(1 * time.Hour), true},
 		// Wrong fingerprint given, should fail.
@@ -260,7 +260,7 @@ func TestCreateDialTLSFuncToVerifyFingerprint(t *testing.T) {
 		client := &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: cConfig,
-				DialTLS:         createDialTLSFuncToVerifyFingerprint(wantFingerprint, cConfig),
+				DialTLS:         createDialTLSFuncToVerifyFingerprint([]string{wantFingerprint}, cConfig),
 			},
 		}
 		_, err = client.Get("https://" + srvListener.Addr().String())
