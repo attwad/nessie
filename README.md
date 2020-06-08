@@ -1,5 +1,6 @@
-[![Build Status](https://travis-ci.org/attwad/nessie.svg?branch=master)](https://travis-ci.org/attwad/nessie)
-[![GoDoc](https://godoc.org/github.com/attwad/nessie?status.png)](https://godoc.org/github.com/attwad/nessie)
+[![Build Status](https://github.com/attwad/nessie/workflows/Go/badge.svg
+)](https://github.com/attwad/nessie/actions)
+[![GoDoc](https://godoc.org/github.com/attwad/nessie?status.svg)](https://godoc.org/github.com/attwad/nessie)
 
 Nessie
 ======
