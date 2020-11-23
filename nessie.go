@@ -43,6 +43,9 @@ type Nessus interface {
 
 	Scanners() ([]Scanner, error)
 	Policies() ([]Policy, error)
+	DeletePolicy(id int64) error
+
+	AgentGroups() ([]AgentGroup, error)
 
 	NewScan(editorTmplUUID, settingsName string, outputFolderID, policyID, scannerID int64, launch string, targets []string) (*Scan, error)
 	Scans() (*ListScansResponse, error)
@@ -917,4 +920,34 @@ func (n *nessusImpl) Permissions(objectType string, objectID int64) ([]Permissio
 		return nil, err
 	}
 	return reply, nil
+}
+
+// DeletePolicy Delete a policy
+func (n *nessusImpl) DeletePolicy(policyID int64) error {
+	if n.verbose {
+		log.Println("Deleting a policy...")
+	}
+
+	_, err := n.doRequest("DELETE", fmt.Sprintf("/policies/%d", policyID), nil, []int{http.StatusOK})
+	return err
+}
+
+// AgentGroups Returns a list of agent groups.
+func (n *nessusImpl) AgentGroups() ([]AgentGroup, error) {
+	if n.verbose {
+		log.Println("Getting list of agent-groups...")
+	}
+
+	resp, err := n.doRequest("GET", "/agent-groups", nil, []int{http.StatusOK})
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	reply := &listAgentGroupsResp{
+		Groups: make([]AgentGroup, 0),
+	}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	return reply.Groups, nil
 }
