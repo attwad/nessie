@@ -641,7 +641,7 @@ func (n *nessusImpl) ScanTemplates() ([]Template, error) {
 		log.Println("Getting scans templates...")
 	}
 
-	resp, err := n.doRequest("GET", "/editor/scans/templates", nil, []int{http.StatusOK})
+	resp, err := n.doRequest("GET", "/editor/scan/templates", nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
