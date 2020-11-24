@@ -65,7 +65,7 @@ type ListScansResponse struct {
 }
 
 type listTemplatesResp struct {
-	Templates []Template `json:"tempaltes"`
+	Templates []Template `json:"templates"`
 }
 
 type startScanResp struct {
