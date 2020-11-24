@@ -56,6 +56,7 @@ type Nessus interface {
 	AgentGroups() ([]AgentGroup, error)
 
 	NewScan(editorTmplUUID, settingsName string, outputFolderID, policyID, scannerID int64, launch string, targets []string) (*Scan, error)
+	CreateScan(newScanRequest NewScanRequest) (*Scan, error)
 	Scans() (*ListScansResponse, error)
 	ScanTemplates() ([]Template, error)
 	PolicyTemplates() ([]Template, error)
@@ -598,15 +599,11 @@ func (n *nessusImpl) NewScan(
 	scannerID int64,
 	launch string,
 	targets []string) (*Scan, error) {
-	if n.verbose {
-		log.Println("Creating a new scan...")
-	}
-
-	data := newScanRequest{
+	data := NewScanRequest{
 		UUID: editorTmplUUID,
-		Settings: scanSettingsRequest{
+		Settings: ScanSettingsRequest{
 			Name:        settingsName,
-			Desc:        "Some description",
+			Description: "Some description",
 			FolderID:    outputFolderID,
 			ScannerID:   scannerID,
 			PolicyID:    policyID,
@@ -615,7 +612,15 @@ func (n *nessusImpl) NewScan(
 		},
 	}
 
-	resp, err := n.doRequest("POST", "/scans", data, []int{http.StatusOK})
+	return n.CreateScan(data)
+}
+
+func (n *nessusImpl) CreateScan(newScanRequest NewScanRequest) (*Scan, error) {
+	if n.verbose {
+		log.Println("Creating a new scan...")
+	}
+
+	resp, err := n.doRequest("POST", "/scans", newScanRequest, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}

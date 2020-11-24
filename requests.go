@@ -24,20 +24,31 @@ type editUserRequest struct {
 	Email       string `json:"email"`
 }
 
-type scanSettingsRequest struct {
-	Name        string `json:"name"`
-	Desc        string `json:"description"`
-	FolderID    int64  `json:"folder_id"`
-	ScannerID   int64  `json:"scanner_id"`
-	PolicyID    int64  `json:"policy_id"`
-	TextTargets string `json:"text_targets"`
-	FileTargets string `json:"file_targets"`
-	Launch      string `json:"launch"`
-	LaunchNow   bool   `json:"launch_now"`
-}
-type newScanRequest struct {
+type NewScanRequest struct {
 	UUID     string              `json:"uuid"`
-	Settings scanSettingsRequest `json:"settings"`
+	Settings ScanSettingsRequest `json:"settings"`
+}
+type ScanSettingsRequest struct {
+	Acls           []Acls        `json:"acls"`
+	Emails         string        `json:"emails"`
+	FilterType     string        `json:"filter_type"`
+	Filters        []interface{} `json:"filters"`
+	Launch         string        `json:"launch"`
+	LaunchNow      bool          `json:"launch_now"`
+	Enabled        bool          `json:"enabled"`
+	UseDashboard   string        `json:"use_dashboard"`
+	Name           string        `json:"name"`
+	Description    string        `json:"description"`
+	FolderID       int64         `json:"folder_id"`
+	ScannerID      int64         `json:"scanner_id"`
+	AgentGroupID   []string      `json:"agent_group_id"`
+	ScanTimeWindow int64         `json:"scan_time_window"`
+	PolicyID       int64         `json:"policy_id"`
+	TextTargets    string        `json:"text_targets"`
+	FileTargets    string        `json:"file_targets"`
+	RRules         string        `json:"rrules"`
+	TimeZone       string        `json:"timezone"`
+	StartTime      string        `json:"starttime"`
 }
 
 type createFolderRequest struct {
