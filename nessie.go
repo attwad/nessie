@@ -492,11 +492,13 @@ func (n *nessusImpl) Scanners() ([]Scanner, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	var reply []Scanner
+	var reply struct {
+		Scanners []Scanner `json:"scanners"`
+	}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
 	}
-	return reply, nil
+	return reply.Scanners, nil
 }
 
 // AllPlugin wil hammer nessus asking for details of every plugins available and feeding them in
