@@ -8,13 +8,18 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 )
@@ -45,6 +50,7 @@ type Nessus interface {
 	Policies() ([]Policy, error)
 	DeletePolicy(id int64) error
 
+	Upload(filePath string) error
 	AgentGroups() ([]AgentGroup, error)
 
 	NewScan(editorTmplUUID, settingsName string, outputFolderID, policyID, scannerID int64, launch string, targets []string) (*Scan, error)
@@ -932,6 +938,65 @@ func (n *nessusImpl) DeletePolicy(policyID int64) error {
 
 	_, err := n.doRequest("DELETE", fmt.Sprintf("/policies/%d", policyID), nil, []int{http.StatusOK})
 	return err
+}
+
+// Upload Upload a file.
+func (n *nessusImpl) Upload(filePath string) error {
+	if n.verbose {
+		log.Println("Uploading a file...")
+	}
+
+	f, err := os.OpenFile(filePath, os.O_RDONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("Filedata", filepath.Base(filePath))
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(part, f)
+
+	err = writer.Close()
+	if err != nil {
+		return err
+	}
+
+	u, err := url.ParseRequestURI(n.apiURL)
+	if err != nil {
+		return err
+	}
+	u.Path = "/file/upload"
+	urlStr := fmt.Sprintf("%v", u)
+
+	req, err := http.NewRequest(http.MethodPost, urlStr, body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	req.Header.Add("Accept", "application/json")
+	if n.authCookie != "" {
+		req.Header.Add("X-Cookie", fmt.Sprintf("token=%s", n.authCookie))
+	}
+
+	resp, err := n.client.Do(req)
+	if nil != err {
+		return err
+	}
+
+	reply := struct {
+		FileUploaded string `json:"fileuploaded"`
+	}{}
+
+	if err = json.NewDecoder(resp.Body).Decode(&reply); nil != err {
+		return err
+	}
+
+	if reply.FileUploaded != filepath.Base(filePath) {
+		return errors.New("Upload failed")
+	}
+
+	return nil
 }
 
 // AgentGroups Returns a list of agent groups.
