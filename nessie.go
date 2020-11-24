@@ -48,6 +48,8 @@ type Nessus interface {
 
 	Scanners() ([]Scanner, error)
 	Policies() ([]Policy, error)
+	CreatePolicy(policySettings CreatePolicyRequest) (CreatePolicyResp, error)
+	ConfigurePolicy(id int64, policySettings CreatePolicyRequest) error
 	DeletePolicy(id int64) error
 
 	Upload(filePath string) error
@@ -930,7 +932,36 @@ func (n *nessusImpl) Permissions(objectType string, objectID int64) ([]Permissio
 	return reply, nil
 }
 
-// DeletePolicy Delete a policy
+// CreatePolicy Create a policy.
+func (n *nessusImpl) CreatePolicy(createFolderRequest CreatePolicyRequest) (CreatePolicyResp, error) {
+	if n.verbose {
+		log.Println("Creating a policy...")
+	}
+
+	resp, err := n.doRequest("POST", "/policies", createFolderRequest, []int{http.StatusOK})
+	if err != nil {
+		return CreatePolicyResp{}, err
+	}
+
+	defer resp.Body.Close()
+	var reply CreatePolicyResp
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return CreatePolicyResp{}, err
+	}
+	return reply, nil
+}
+
+// ConfigurePolicy Changes the parameters of a policy.
+func (n *nessusImpl) ConfigurePolicy(policyID int64, createFolderRequest CreatePolicyRequest) error {
+	if n.verbose {
+		log.Println("Configuring a policy...")
+	}
+
+	_, err := n.doRequest("PUT", fmt.Sprintf("/policies/%d", policyID), createFolderRequest, []int{http.StatusOK})
+	return err
+}
+
+// DeletePolicy Delete a policy.
 func (n *nessusImpl) DeletePolicy(policyID int64) error {
 	if n.verbose {
 		log.Println("Deleting a policy...")
