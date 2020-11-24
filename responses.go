@@ -129,3 +129,7 @@ type exportStatusResp struct {
 type listGroupsResp struct {
 	Groups []Group `json:"groups"`
 }
+
+type listAgentGroupsResp struct {
+	Groups []AgentGroup `json:"groups"`
+}

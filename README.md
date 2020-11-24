@@ -6,7 +6,6 @@ Nessie
 
 Tenable Nessus 6 API client in Go.
 
-
 Usage
 -----
 
@@ -17,6 +16,16 @@ Status
 
 Here are the resources accessible via the official API and their current implementation status in this client:
 
+- AgentGroups
+  - Add agent
+  - Add agents
+  - Configure
+  - Create
+  - Delete group
+  - Delete groups
+  - Delete agent
+  - Delete agents
+  - List groups ✓
 - Editor
   - Details
   - Edit
@@ -54,7 +63,7 @@ Here are the resources accessible via the official API and their current impleme
   - Configure
   - Copy
   - Create
-  - Delete
+  - Delete ✓
   - Details
   - Import
   - Export
@@ -70,7 +79,7 @@ Here are the resources accessible via the official API and their current impleme
   - Download ✓
   - Export ✓
   - Export status ✓
-  - Host details 
+  - Host details
   - Import
   - Launch ✓
   - List ✓
@@ -82,7 +91,7 @@ Here are the resources accessible via the official API and their current impleme
   - Timezones ✓
 - Server ✓
   - Properties ✓
-  - Status ✓ 
+  - Status ✓
 - Sessions
   - Create ✓
   - Destroy ✓
@@ -98,4 +107,4 @@ Here are the resources accessible via the official API and their current impleme
 
 Some methods are not part of the API but are implemented by this client to make life easier:
 
--  Get all plugin details
+- Get all plugin details
