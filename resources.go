@@ -16,6 +16,8 @@ type Template struct {
 	CloudOnly bool `json:"cloud_only"`
 	// If true, the template is only available for subscribers.
 	SubscriptionOnly bool `json:"subscription_only"`
+	// If true, the template is for agent scans.
+	IsAgent bool `json:"is_agent"`
 	// An external URL to link the template to.
 	MoreInfo string `json:"more_info"`
 }
@@ -136,7 +138,7 @@ type Rule struct {
 type Policy struct {
 	ID                   int64  `json:"id"`
 	TemplateUUID         string `json:"template_uuid"`
-	Name                 string `json:"uuid"`
+	Name                 string `json:"name"`
 	Desc                 string `json:"description"`
 	OwnerID              int64  `json:"owner_id"`
 	Owner                string `json:"owner"`
@@ -144,8 +146,8 @@ type Policy struct {
 	UserPerms            int64  `json:"user_permissions"`
 	CreationDate         int64  `json:"creation_date"`
 	LastModificationDate int64  `json:"last_modification_date"`
-	Visibility           int64  `json:"visibility"`
-	NoTarget             bool   `json:"no_target"`
+	Visibility           string `json:"visibility"`
+	NoTarget             string `json:"no_target"`
 }
 
 // Scanners resources.

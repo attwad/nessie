@@ -65,7 +65,7 @@ type ListScansResponse struct {
 }
 
 type listTemplatesResp struct {
-	Templates []Template `json:"tempaltes"`
+	Templates []Template `json:"templates"`
 }
 
 type startScanResp struct {
@@ -132,4 +132,10 @@ type listGroupsResp struct {
 
 type listAgentGroupsResp struct {
 	Groups []AgentGroup `json:"groups"`
+}
+
+// CreatePolicyResp response body If successful
+type CreatePolicyResp struct {
+	PolicyID   int64  `json:"policy_id"`
+	PolicyName string `json:"policy_name"`
 }

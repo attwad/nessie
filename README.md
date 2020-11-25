@@ -33,7 +33,7 @@ Here are the resources accessible via the official API and their current impleme
   - List scan templates ✓
   - Plugin description
 - File
-  - Upload
+  - Upload ✓
 - Folders ✓
   - Create ✓
   - Delete ✓
@@ -60,9 +60,9 @@ Here are the resources accessible via the official API and their current impleme
   - Edit
   - List
 - Policies
-  - Configure
+  - Configure ✓
   - Copy
-  - Create
+  - Create ✓
   - Delete ✓
   - Details
   - Import

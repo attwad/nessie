@@ -8,13 +8,18 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 )
@@ -43,11 +48,15 @@ type Nessus interface {
 
 	Scanners() ([]Scanner, error)
 	Policies() ([]Policy, error)
+	CreatePolicy(policySettings CreatePolicyRequest) (CreatePolicyResp, error)
+	ConfigurePolicy(id int64, policySettings CreatePolicyRequest) error
 	DeletePolicy(id int64) error
 
+	Upload(filePath string) error
 	AgentGroups() ([]AgentGroup, error)
 
 	NewScan(editorTmplUUID, settingsName string, outputFolderID, policyID, scannerID int64, launch string, targets []string) (*Scan, error)
+	CreateScan(newScanRequest NewScanRequest) (*Scan, error)
 	Scans() (*ListScansResponse, error)
 	ScanTemplates() ([]Template, error)
 	PolicyTemplates() ([]Template, error)
@@ -492,11 +501,13 @@ func (n *nessusImpl) Scanners() ([]Scanner, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	var reply []Scanner
+	var reply struct {
+		Scanners []Scanner `json:"scanners"`
+	}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
 	}
-	return reply, nil
+	return reply.Scanners, nil
 }
 
 // AllPlugin wil hammer nessus asking for details of every plugins available and feeding them in
@@ -588,15 +599,11 @@ func (n *nessusImpl) NewScan(
 	scannerID int64,
 	launch string,
 	targets []string) (*Scan, error) {
-	if n.verbose {
-		log.Println("Creating a new scan...")
-	}
-
-	data := newScanRequest{
+	data := NewScanRequest{
 		UUID: editorTmplUUID,
-		Settings: scanSettingsRequest{
+		Settings: ScanSettingsRequest{
 			Name:        settingsName,
-			Desc:        "Some description",
+			Description: "Some description",
 			FolderID:    outputFolderID,
 			ScannerID:   scannerID,
 			PolicyID:    policyID,
@@ -605,7 +612,15 @@ func (n *nessusImpl) NewScan(
 		},
 	}
 
-	resp, err := n.doRequest("POST", "/scans", data, []int{http.StatusOK})
+	return n.CreateScan(data)
+}
+
+func (n *nessusImpl) CreateScan(newScanRequest NewScanRequest) (*Scan, error) {
+	if n.verbose {
+		log.Println("Creating a new scan...")
+	}
+
+	resp, err := n.doRequest("POST", "/scans", newScanRequest, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -639,7 +654,7 @@ func (n *nessusImpl) ScanTemplates() ([]Template, error) {
 		log.Println("Getting scans templates...")
 	}
 
-	resp, err := n.doRequest("GET", "/editor/scans/templates", nil, []int{http.StatusOK})
+	resp, err := n.doRequest("GET", "/editor/scan/templates", nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -922,7 +937,36 @@ func (n *nessusImpl) Permissions(objectType string, objectID int64) ([]Permissio
 	return reply, nil
 }
 
-// DeletePolicy Delete a policy
+// CreatePolicy Create a policy.
+func (n *nessusImpl) CreatePolicy(createPolicyRequest CreatePolicyRequest) (CreatePolicyResp, error) {
+	if n.verbose {
+		log.Println("Creating a policy...")
+	}
+
+	resp, err := n.doRequest("POST", "/policies", createPolicyRequest, []int{http.StatusOK})
+	if err != nil {
+		return CreatePolicyResp{}, err
+	}
+
+	defer resp.Body.Close()
+	var reply CreatePolicyResp
+	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return CreatePolicyResp{}, err
+	}
+	return reply, nil
+}
+
+// ConfigurePolicy Changes the parameters of a policy.
+func (n *nessusImpl) ConfigurePolicy(policyID int64, createPolicyRequest CreatePolicyRequest) error {
+	if n.verbose {
+		log.Println("Configuring a policy...")
+	}
+
+	_, err := n.doRequest("PUT", fmt.Sprintf("/policies/%d", policyID), createPolicyRequest, []int{http.StatusOK})
+	return err
+}
+
+// DeletePolicy Delete a policy.
 func (n *nessusImpl) DeletePolicy(policyID int64) error {
 	if n.verbose {
 		log.Println("Deleting a policy...")
@@ -930,6 +974,64 @@ func (n *nessusImpl) DeletePolicy(policyID int64) error {
 
 	_, err := n.doRequest("DELETE", fmt.Sprintf("/policies/%d", policyID), nil, []int{http.StatusOK})
 	return err
+}
+
+// Upload Upload a file.
+func (n *nessusImpl) Upload(filePath string) error {
+	if n.verbose {
+		log.Println("Uploading a file...")
+	}
+
+	f, err := os.OpenFile(filePath, os.O_RDONLY, 0644)
+	if err != nil {
+		return err
+	}
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("Filedata", filepath.Base(filePath))
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(part, f)
+
+	if err = writer.Close(); nil != err {
+		return err
+	}
+
+	u, err := url.ParseRequestURI(n.apiURL)
+	if err != nil {
+		return err
+	}
+	u.Path = "/file/upload"
+	urlStr := fmt.Sprintf("%v", u)
+
+	req, err := http.NewRequest(http.MethodPost, urlStr, body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+
+	req.Header.Add("Accept", "application/json")
+	if n.authCookie != "" {
+		req.Header.Add("X-Cookie", fmt.Sprintf("token=%s", n.authCookie))
+	}
+
+	resp, err := n.client.Do(req)
+	if nil != err {
+		return err
+	}
+
+	reply := struct {
+		FileUploaded string `json:"fileuploaded"`
+	}{}
+
+	if err = json.NewDecoder(resp.Body).Decode(&reply); nil != err {
+		return err
+	}
+
+	if reply.FileUploaded != filepath.Base(filePath) {
+		return errors.New("Upload failed")
+	}
+
+	return nil
 }
 
 // AgentGroups Returns a list of agent groups.
