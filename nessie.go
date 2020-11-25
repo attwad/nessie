@@ -938,12 +938,12 @@ func (n *nessusImpl) Permissions(objectType string, objectID int64) ([]Permissio
 }
 
 // CreatePolicy Create a policy.
-func (n *nessusImpl) CreatePolicy(createFolderRequest CreatePolicyRequest) (CreatePolicyResp, error) {
+func (n *nessusImpl) CreatePolicy(createPolicyRequest CreatePolicyRequest) (CreatePolicyResp, error) {
 	if n.verbose {
 		log.Println("Creating a policy...")
 	}
 
-	resp, err := n.doRequest("POST", "/policies", createFolderRequest, []int{http.StatusOK})
+	resp, err := n.doRequest("POST", "/policies", createPolicyRequest, []int{http.StatusOK})
 	if err != nil {
 		return CreatePolicyResp{}, err
 	}
@@ -957,12 +957,12 @@ func (n *nessusImpl) CreatePolicy(createFolderRequest CreatePolicyRequest) (Crea
 }
 
 // ConfigurePolicy Changes the parameters of a policy.
-func (n *nessusImpl) ConfigurePolicy(policyID int64, createFolderRequest CreatePolicyRequest) error {
+func (n *nessusImpl) ConfigurePolicy(policyID int64, createPolicyRequest CreatePolicyRequest) error {
 	if n.verbose {
 		log.Println("Configuring a policy...")
 	}
 
-	_, err := n.doRequest("PUT", fmt.Sprintf("/policies/%d", policyID), createFolderRequest, []int{http.StatusOK})
+	_, err := n.doRequest("PUT", fmt.Sprintf("/policies/%d", policyID), createPolicyRequest, []int{http.StatusOK})
 	return err
 }
 
@@ -995,8 +995,7 @@ func (n *nessusImpl) Upload(filePath string) error {
 	}
 	_, err = io.Copy(part, f)
 
-	err = writer.Close()
-	if err != nil {
+	if err = writer.Close(); nil != err {
 		return err
 	}
 
