@@ -71,7 +71,7 @@ Here are the resources accessible via the official API and their current impleme
 - Scanners ✓
   - List ✓
 - Scans
-  - Configure
+  - Configure ✓
   - Create ✓
   - Delete ✓
   - Delete history
