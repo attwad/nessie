@@ -8,7 +8,6 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -1052,8 +1051,11 @@ func (n *nessusImpl) Upload(filePath string) error {
 		return err
 	}
 
-	if reply.FileUploaded != filepath.Base(filePath) {
-		return errors.New("Upload failed")
+	// Duplicate updates will get different replies
+	// request:             CIS_CentOS_7_Server_L1_v3.0.0.audit
+	// reply: {FileUploaded:CIS_CentOS_7_Server_L1_v3.0.0-6.audit}
+	if 0 == len(reply.FileUploaded) {
+		return fmt.Errorf("Upload failed, api reply: %+v", reply)
 	}
 
 	return nil
