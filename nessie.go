@@ -28,6 +28,7 @@ import (
 type Nessus interface {
 	SetVerbose(bool)
 	AuthCookie() string
+	Request(method string, resource string, js interface{}, wantStatus []int) (resp *http.Response, err error)
 	Login(username, password string) error
 	Logout() error
 	Session() (Session, error)
@@ -176,7 +177,8 @@ func (n *nessusImpl) AuthCookie() string {
 	return n.authCookie
 }
 
-func (n *nessusImpl) doRequest(method string, resource string, js interface{}, wantStatus []int) (resp *http.Response, err error) {
+// Request make a request to Nessus
+func (n *nessusImpl) Request(method string, resource string, js interface{}, wantStatus []int) (resp *http.Response, err error) {
 	u, err := url.ParseRequestURI(n.apiURL)
 	if err != nil {
 		return nil, err
@@ -241,7 +243,7 @@ func (n *nessusImpl) Login(username, password string) error {
 		Password: password,
 	}
 
-	resp, err := n.doRequest("POST", "/session", data, []int{http.StatusOK})
+	resp, err := n.Request("POST", "/session", data, []int{http.StatusOK})
 	if err != nil {
 		return err
 	}
@@ -264,7 +266,7 @@ func (n *nessusImpl) Logout() error {
 		log.Println("Logout...")
 	}
 
-	if _, err := n.doRequest("DELETE", "/session", nil, []int{http.StatusOK}); err != nil {
+	if _, err := n.Request("DELETE", "/session", nil, []int{http.StatusOK}); err != nil {
 		return err
 	}
 	n.authCookie = ""
@@ -277,7 +279,7 @@ func (n *nessusImpl) Session() (Session, error) {
 		log.Printf("Getting details for current session...")
 	}
 
-	resp, err := n.doRequest("GET", "/session", nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", "/session", nil, []int{http.StatusOK})
 	if err != nil {
 		return Session{}, err
 	}
@@ -295,7 +297,7 @@ func (n *nessusImpl) ServerProperties() (*ServerProperties, error) {
 		log.Println("Server properties...")
 	}
 
-	resp, err := n.doRequest("GET", "/server/properties", nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", "/server/properties", nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -313,7 +315,7 @@ func (n *nessusImpl) ServerStatus() (*ServerStatus, error) {
 		log.Println("Server status...")
 	}
 
-	resp, err := n.doRequest("GET", "/server/status", nil, []int{http.StatusOK, http.StatusServiceUnavailable})
+	resp, err := n.Request("GET", "/server/status", nil, []int{http.StatusOK, http.StatusServiceUnavailable})
 	if err != nil {
 		return nil, err
 	}
@@ -358,7 +360,7 @@ func (n *nessusImpl) CreateUser(username, password, userType, permissions, name,
 		data.Email = email
 	}
 
-	resp, err := n.doRequest("POST", "/users", data, []int{http.StatusOK})
+	resp, err := n.Request("POST", "/users", data, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -376,7 +378,7 @@ func (n *nessusImpl) ListUsers() ([]User, error) {
 		log.Println("Listing users...")
 	}
 
-	resp, err := n.doRequest("GET", "/users", nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", "/users", nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -394,7 +396,7 @@ func (n *nessusImpl) DeleteUser(userID int) error {
 		log.Println("Deleting user...")
 	}
 
-	_, err := n.doRequest("DELETE", fmt.Sprintf("/users/%d", userID), nil, []int{http.StatusOK})
+	_, err := n.Request("DELETE", fmt.Sprintf("/users/%d", userID), nil, []int{http.StatusOK})
 	return err
 }
 
@@ -407,7 +409,7 @@ func (n *nessusImpl) SetUserPassword(userID int, password string) error {
 		Password: password,
 	}
 
-	_, err := n.doRequest("PUT", fmt.Sprintf("/users/%d/chpasswd", userID), data, []int{http.StatusOK})
+	_, err := n.Request("PUT", fmt.Sprintf("/users/%d/chpasswd", userID), data, []int{http.StatusOK})
 	return err
 }
 
@@ -429,7 +431,7 @@ func (n *nessusImpl) EditUser(userID int, permissions, name, email string) (*Use
 		data.Email = email
 	}
 
-	resp, err := n.doRequest("PUT", fmt.Sprintf("/users/%d", userID), data, []int{http.StatusOK})
+	resp, err := n.Request("PUT", fmt.Sprintf("/users/%d", userID), data, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -446,7 +448,7 @@ func (n *nessusImpl) PluginFamilies() ([]PluginFamily, error) {
 		log.Println("Getting list of plugin families...")
 	}
 
-	resp, err := n.doRequest("GET", "/plugins/families", nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", "/plugins/families", nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -463,7 +465,7 @@ func (n *nessusImpl) FamilyDetails(ID int64) (*FamilyDetails, error) {
 		log.Println("Getting details of family...")
 	}
 
-	resp, err := n.doRequest("GET", fmt.Sprintf("/plugins/families/%d", ID), nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", fmt.Sprintf("/plugins/families/%d", ID), nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -480,7 +482,7 @@ func (n *nessusImpl) PluginDetails(ID int64) (*PluginDetails, error) {
 		log.Println("Getting details plugin...")
 	}
 
-	resp, err := n.doRequest("GET", fmt.Sprintf("/plugins/plugin/%d", ID), nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", fmt.Sprintf("/plugins/plugin/%d", ID), nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -497,7 +499,7 @@ func (n *nessusImpl) Scanners() ([]Scanner, error) {
 		log.Println("Getting scanners list...")
 	}
 
-	resp, err := n.doRequest("GET", "/scanners", nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", "/scanners", nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -572,7 +574,7 @@ func (n *nessusImpl) Policies() ([]Policy, error) {
 		log.Println("Getting policies list...")
 	}
 
-	resp, err := n.doRequest("GET", "/policies", nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", "/policies", nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -621,7 +623,7 @@ func (n *nessusImpl) CreateScan(newScanRequest NewScanRequest) (*Scan, error) {
 		log.Println("Creating a new scan...")
 	}
 
-	resp, err := n.doRequest("POST", "/scans", newScanRequest, []int{http.StatusOK})
+	resp, err := n.Request("POST", "/scans", newScanRequest, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -642,7 +644,7 @@ func (n *nessusImpl) Scans() (*ListScansResponse, error) {
 		log.Println("Getting scans list...")
 	}
 
-	resp, err := n.doRequest("GET", "/scans", nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", "/scans", nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -659,7 +661,7 @@ func (n *nessusImpl) ScanTemplates() ([]Template, error) {
 		log.Println("Getting scans templates...")
 	}
 
-	resp, err := n.doRequest("GET", "/editor/scan/templates", nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", "/editor/scan/templates", nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -676,7 +678,7 @@ func (n *nessusImpl) PolicyTemplates() ([]Template, error) {
 		log.Println("Getting policy templates...")
 	}
 
-	resp, err := n.doRequest("GET", "/editor/policy/templates", nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", "/editor/policy/templates", nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -694,7 +696,7 @@ func (n *nessusImpl) StartScan(scanID int64) (string, error) {
 		log.Println("Starting scan...")
 	}
 
-	resp, err := n.doRequest("POST", fmt.Sprintf("/scans/%d/launch", scanID), nil, []int{http.StatusOK})
+	resp, err := n.Request("POST", fmt.Sprintf("/scans/%d/launch", scanID), nil, []int{http.StatusOK})
 	if err != nil {
 		return "", err
 	}
@@ -711,7 +713,7 @@ func (n *nessusImpl) PauseScan(scanID int64) error {
 		log.Println("Pausing scan...")
 	}
 
-	_, err := n.doRequest("POST", fmt.Sprintf("/scans/%d/pause", scanID), nil, []int{http.StatusOK})
+	_, err := n.Request("POST", fmt.Sprintf("/scans/%d/pause", scanID), nil, []int{http.StatusOK})
 	return err
 }
 
@@ -720,7 +722,7 @@ func (n *nessusImpl) ResumeScan(scanID int64) error {
 		log.Println("Resume scan...")
 	}
 
-	_, err := n.doRequest("POST", fmt.Sprintf("/scans/%d/resume", scanID), nil, []int{http.StatusOK})
+	_, err := n.Request("POST", fmt.Sprintf("/scans/%d/resume", scanID), nil, []int{http.StatusOK})
 	return err
 }
 
@@ -729,7 +731,7 @@ func (n *nessusImpl) StopScan(scanID int64) error {
 		log.Println("Stop scan...")
 	}
 
-	_, err := n.doRequest("POST", fmt.Sprintf("/scans/%d/stop", scanID), nil, []int{http.StatusOK})
+	_, err := n.Request("POST", fmt.Sprintf("/scans/%d/stop", scanID), nil, []int{http.StatusOK})
 	return err
 }
 
@@ -738,7 +740,7 @@ func (n *nessusImpl) DeleteScan(scanID int64) error {
 		log.Println("Deleting scan...")
 	}
 
-	_, err := n.doRequest("DELETE", fmt.Sprintf("/scans/%d", scanID), nil, []int{http.StatusOK})
+	_, err := n.Request("DELETE", fmt.Sprintf("/scans/%d", scanID), nil, []int{http.StatusOK})
 	return err
 }
 
@@ -747,7 +749,7 @@ func (n *nessusImpl) ScanDetails(scanID int64) (*ScanDetailsResp, error) {
 		log.Println("Getting details about a scan...")
 	}
 
-	resp, err := n.doRequest("GET", fmt.Sprintf("/scans/%d", scanID), nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", fmt.Sprintf("/scans/%d", scanID), nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -764,7 +766,7 @@ func (n *nessusImpl) ConfigureScan(scanID int64, scanSetting NewScanRequest) (*S
 		log.Println("Configuring a scan...")
 	}
 
-	resp, err := n.doRequest("PUT", fmt.Sprintf("/scans/%d", scanID), scanSetting, []int{http.StatusOK})
+	resp, err := n.Request("PUT", fmt.Sprintf("/scans/%d", scanID), scanSetting, []int{http.StatusOK})
 	if nil != err {
 		return nil, err
 	}
@@ -782,7 +784,7 @@ func (n *nessusImpl) Timezones() ([]TimeZone, error) {
 		log.Println("Getting list of timezones...")
 	}
 
-	resp, err := n.doRequest("GET", "/scans/timezones", nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", "/scans/timezones", nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -799,7 +801,7 @@ func (n *nessusImpl) Folders() ([]Folder, error) {
 		log.Println("Getting list of folders...")
 	}
 
-	resp, err := n.doRequest("GET", "/folders", nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", "/folders", nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -817,7 +819,7 @@ func (n *nessusImpl) CreateFolder(name string) error {
 	}
 
 	req := createFolderRequest{Name: name}
-	_, err := n.doRequest("POST", "/folders", req, []int{http.StatusOK})
+	_, err := n.Request("POST", "/folders", req, []int{http.StatusOK})
 	return err
 }
 
@@ -827,7 +829,7 @@ func (n *nessusImpl) EditFolder(folderID int64, newName string) error {
 	}
 
 	req := editFolderRequest{Name: newName}
-	_, err := n.doRequest("PUT", fmt.Sprintf("/folders/%d", folderID), req, []int{http.StatusOK})
+	_, err := n.Request("PUT", fmt.Sprintf("/folders/%d", folderID), req, []int{http.StatusOK})
 	return err
 }
 
@@ -836,7 +838,7 @@ func (n *nessusImpl) DeleteFolder(folderID int64) error {
 		log.Println("Deleting folders...")
 	}
 
-	_, err := n.doRequest("DELETE", fmt.Sprintf("/folders/%d", folderID), nil, []int{http.StatusOK})
+	_, err := n.Request("DELETE", fmt.Sprintf("/folders/%d", folderID), nil, []int{http.StatusOK})
 	return err
 }
 
@@ -856,7 +858,7 @@ func (n *nessusImpl) ExportScan(scanID int64, format string) (int64, error) {
 	}
 
 	req := exportScanRequest{Format: format}
-	resp, err := n.doRequest("POST", fmt.Sprintf("/scans/%d/export", scanID), req, []int{http.StatusOK})
+	resp, err := n.Request("POST", fmt.Sprintf("/scans/%d/export", scanID), req, []int{http.StatusOK})
 	if err != nil {
 		return 0, err
 	}
@@ -874,7 +876,7 @@ func (n *nessusImpl) ExportFinished(scanID, exportID int64) (bool, error) {
 		log.Println("Getting export status...")
 	}
 
-	resp, err := n.doRequest("GET", fmt.Sprintf("/scans/%d/export/%d/status", scanID, exportID), nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", fmt.Sprintf("/scans/%d/export/%d/status", scanID, exportID), nil, []int{http.StatusOK})
 	if err != nil {
 		return false, err
 	}
@@ -892,7 +894,7 @@ func (n *nessusImpl) DownloadExport(scanID, exportID int64) ([]byte, error) {
 		log.Println("Downloading export file...")
 	}
 
-	resp, err := n.doRequest("GET", fmt.Sprintf("/scans/%d/export/%d/download", scanID, exportID), nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", fmt.Sprintf("/scans/%d/export/%d/download", scanID, exportID), nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -910,7 +912,7 @@ func (n *nessusImpl) ListGroups() ([]Group, error) {
 		log.Println("Listing groups...")
 	}
 
-	resp, err := n.doRequest("GET", "/groups", nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", "/groups", nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -931,7 +933,7 @@ func (n *nessusImpl) CreateGroup(name string) (Group, error) {
 	req := createGroupRequest{
 		Name: name,
 	}
-	resp, err := n.doRequest("POST", "/groups", req, []int{http.StatusOK})
+	resp, err := n.Request("POST", "/groups", req, []int{http.StatusOK})
 	if err != nil {
 		return Group{}, err
 	}
@@ -948,7 +950,7 @@ func (n *nessusImpl) Permissions(objectType string, objectID int64) ([]Permissio
 		log.Println("Creating a group...")
 	}
 
-	resp, err := n.doRequest("GET", fmt.Sprintf("/permissions/%s/%d", objectType, objectID), nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", fmt.Sprintf("/permissions/%s/%d", objectType, objectID), nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}
@@ -966,7 +968,7 @@ func (n *nessusImpl) CreatePolicy(createPolicyRequest CreatePolicyRequest) (Crea
 		log.Println("Creating a policy...")
 	}
 
-	resp, err := n.doRequest("POST", "/policies", createPolicyRequest, []int{http.StatusOK})
+	resp, err := n.Request("POST", "/policies", createPolicyRequest, []int{http.StatusOK})
 	if err != nil {
 		return CreatePolicyResp{}, err
 	}
@@ -985,7 +987,7 @@ func (n *nessusImpl) ConfigurePolicy(policyID int64, createPolicyRequest CreateP
 		log.Println("Configuring a policy...")
 	}
 
-	_, err := n.doRequest("PUT", fmt.Sprintf("/policies/%d", policyID), createPolicyRequest, []int{http.StatusOK})
+	_, err := n.Request("PUT", fmt.Sprintf("/policies/%d", policyID), createPolicyRequest, []int{http.StatusOK})
 	return err
 }
 
@@ -995,7 +997,7 @@ func (n *nessusImpl) DeletePolicy(policyID int64) error {
 		log.Println("Deleting a policy...")
 	}
 
-	_, err := n.doRequest("DELETE", fmt.Sprintf("/policies/%d", policyID), nil, []int{http.StatusOK})
+	_, err := n.Request("DELETE", fmt.Sprintf("/policies/%d", policyID), nil, []int{http.StatusOK})
 	return err
 }
 
@@ -1063,7 +1065,7 @@ func (n *nessusImpl) AgentGroups() ([]AgentGroup, error) {
 		log.Println("Getting list of agent-groups...")
 	}
 
-	resp, err := n.doRequest("GET", "/agent-groups", nil, []int{http.StatusOK})
+	resp, err := n.Request("GET", "/agent-groups", nil, []int{http.StatusOK})
 	if err != nil {
 		return nil, err
 	}

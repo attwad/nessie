@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-func TestDoRequest(t *testing.T) {
+func TestRequest(t *testing.T) {
 	// Test structure to be serialized.
 	type payload struct {
 		A int `json:"a"`
@@ -66,7 +66,7 @@ func TestDoRequest(t *testing.T) {
 			},
 		}
 		n.SetVerbose(true)
-		resp, err := n.doRequest(tt.method, tt.resource, tt.sentPayload, tt.wantStatus)
+		resp, err := n.Request(tt.method, tt.resource, tt.sentPayload, tt.wantStatus)
 		if tt.wantError {
 			if err == nil {
 				t.Errorf("got no error, expected one (%+v)", tt)
@@ -74,7 +74,7 @@ func TestDoRequest(t *testing.T) {
 			continue
 		}
 		if err != nil {
-			t.Errorf("error in doRequest: %v (%+v)", err, tt)
+			t.Errorf("error in Request: %v (%+v)", err, tt)
 			continue
 		}
 		if resp.StatusCode != tt.serverStatus {
