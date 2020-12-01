@@ -166,24 +166,41 @@ type Scanner struct {
 	Owner            string `json:"owner"`
 }
 
-// Scans resources.
-
+// Scan resource.
 type Scan struct {
-	ID                   int64  `json:"id"`
-	UUID                 string `json:"uuid"`
-	Name                 string `json:"name"`
-	Owner                string `json:"owner"`
-	FolderID             int64  `json:"folder_id"`
-	Read                 bool   `json:"read"`
-	Status               string `json:"status"`
-	Shared               bool   `json:"shared"`
-	UserPerms            int64  `json:"user_permissions"`
-	CreationDate         int64  `json:"creation_date"`
-	LastModificationDate int64  `json:"last_modification_date"`
-	Control              bool   `json:"control"`
-	StartTime            string `json:"starttime"`
-	TimeZone             string `json:"timezone"`
-	RRules               string `json:"rrules"`
+	ID                        int64       `json:"id"`
+	UUID                      string      `json:"uuid"`
+	Name                      string      `json:"name"`
+	Owner                     string      `json:"owner"`
+	Shared                    int         `json:"shared"`
+	UserPermissions           int64       `json:"user_permissions"`
+	CreationDate              int64       `json:"creation_date"`
+	LastModificationDate      int64       `json:"last_modification_date"`
+	StartTime                 string      `json:"starttime"`
+	TimeZone                  string      `json:"timezone"`
+	RRules                    string      `json:"rrules"`
+	ContainerID               int         `json:"container_id"`
+	Description               string      `json:"description"`
+	PolicyID                  int         `json:"policy_id"`
+	ScannerID                 int         `json:"scanner_id"`
+	Emails                    string      `json:"emails"`
+	AttachReport              int         `json:"attach_report"`
+	AttachedReportMaximumSize int         `json:"attached_report_maximum_size"`
+	AttachedReportType        interface{} `json:"attached_report_type"`
+	Sms                       interface{} `json:"sms"`
+	Enabled                   int         `json:"enabled"`
+	UseDashboard              int         `json:"use_dashboard"`
+	DashboardFile             interface{} `json:"dashboard_file"`
+	LiveResults               int         `json:"live_results"`
+	ScanTimeWindow            int         `json:"scan_time_window"`
+	CustomTargets             string      `json:"custom_targets"`
+	Migrated                  int         `json:"migrated"`
+	LastScheduledRun          string      `json:"last_scheduled_run"`
+	NotificationFilters       interface{} `json:"notification_filters"`
+	TagID                     int         `json:"tag_id"`
+	DefaultPermisssions       int         `json:"default_permisssions"`
+	OwnerID                   int         `json:"owner_id"`
+	Type                      string      `json:"type"`
 }
 
 type Host struct {

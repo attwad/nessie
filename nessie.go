@@ -66,6 +66,7 @@ type Nessus interface {
 	StopScan(scanID int64) error
 	DeleteScan(scanID int64) error
 	ScanDetails(scanID int64) (*ScanDetailsResp, error)
+	ConfigureScan(scanID int64, scanSetting NewScanRequest) (*Scan, error)
 
 	Timezones() ([]TimeZone, error)
 
@@ -624,12 +625,16 @@ func (n *nessusImpl) CreateScan(newScanRequest NewScanRequest) (*Scan, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	defer resp.Body.Close()
-	reply := &Scan{}
+	reply := struct {
+		Scan Scan `json:"scan"`
+	}{}
+
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
 		return nil, err
 	}
-	return reply, nil
+	return &reply.Scan, nil
 }
 
 func (n *nessusImpl) Scans() (*ListScansResponse, error) {
@@ -749,6 +754,24 @@ func (n *nessusImpl) ScanDetails(scanID int64) (*ScanDetailsResp, error) {
 	defer resp.Body.Close()
 	reply := &ScanDetailsResp{}
 	if err = json.NewDecoder(resp.Body).Decode(&reply); err != nil {
+		return nil, err
+	}
+	return reply, nil
+}
+
+func (n *nessusImpl) ConfigureScan(scanID int64, scanSetting NewScanRequest) (*Scan, error) {
+	if n.verbose {
+		log.Println("Configuring a scan...")
+	}
+
+	resp, err := n.doRequest("PUT", fmt.Sprintf("/scans/%d", scanID), scanSetting, []int{http.StatusOK})
+	if nil != err {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+	reply := &Scan{}
+	if err = json.NewDecoder(resp.Body).Decode(&reply); nil != err {
 		return nil, err
 	}
 	return reply, nil
