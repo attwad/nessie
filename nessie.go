@@ -182,7 +182,18 @@ func (n *nessusImpl) Request(method string, resource string, js interface{}, wan
 	if err != nil {
 		return nil, err
 	}
-	u.Path = resource
+	// Note: resource doesn't support '?' due to https://golang.org/pkg/net/url/#PathEscape
+	// In order to not break this API, we'll split the resource by '?' here
+	// when resource = "/agents?filter.0.filter=status&filter.0.quality=neq&filter.0.value=online"
+	// split resource to:
+	//   1. Path = "/agents"
+	//   2. RawQuery = "filter.0.filter=status&filter.0.quality=neq&filter.0.value=online"
+	if idx := strings.IndexByte(resource, '?'); -1 != idx {
+		u.Path = resource[:idx]
+		u.RawQuery = resource[idx+1:]
+	} else {
+		u.Path = resource
+	}
 	urlStr := fmt.Sprintf("%v", u)
 
 	jb, err := json.Marshal(js)
