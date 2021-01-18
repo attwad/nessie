@@ -8,12 +8,13 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
-	"io/ioutil"
 	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/gorilla/schema"
 )
 
 func TestRequest(t *testing.T) {
@@ -35,6 +36,8 @@ func TestRequest(t *testing.T) {
 		{"POST", "/test", payload{}, "{\"a\":0}", http.StatusOK, []int{http.StatusOK}, false},
 		{"DELETE", "/test", payload{}, "{\"a\":0}", http.StatusOK, []int{http.StatusOK}, false},
 		{"PUT", "/test", payload{}, "{\"a\":0}", http.StatusOK, []int{http.StatusOK}, false},
+		// Querystring test
+		{"GET", "/test?a=42", payload{}, "{\"a\":42}", http.StatusOK, []int{http.StatusOK}, false},
 		// Payload test.
 		{"GET", "/test", payload{42}, "{\"a\":42}", http.StatusOK, []int{http.StatusOK}, false},
 		// Expected failure.
@@ -45,14 +48,30 @@ func TestRequest(t *testing.T) {
 	for _, tt := range tests {
 		ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(tt.serverStatus)
-			body, err := ioutil.ReadAll(r.Body)
-			if err != nil {
-				t.Errorf("could not read request body: %v", err)
+			request := &payload{}
+
+			if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+				t.Errorf("could not decode request body: %v", err)
 				return
 			}
-			bodyStr := string(body)
-			if bodyStr != tt.wantPayload {
-				t.Errorf("unexpected payload, got=%s, want=%s", body, tt.wantPayload)
+
+			decoder := schema.NewDecoder()
+			if err := r.ParseForm(); nil != err {
+				t.Errorf("could not parse form: %v", err)
+			}
+
+			if err := decoder.Decode(request, r.Form); nil != err {
+				t.Errorf("could not decode request: %v", err)
+			}
+
+			requestBytes, err := json.Marshal(request)
+			if nil != err {
+				return
+			}
+
+			requestStr := string(requestBytes)
+			if string(requestStr) != tt.wantPayload {
+				t.Errorf("unexpected payload, got=%s, want=%s", requestStr, tt.wantPayload)
 			}
 		}))
 		n := &nessusImpl{
